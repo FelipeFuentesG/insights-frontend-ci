@@ -1,24 +1,25 @@
-html, 
-body { 
-    margin: 0; 
-    padding: 0; 
-    height: 100%; 
-    overflow: hidden; 
+html,
+body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
 }
 
-.layout-register-main { 
-    min-height: 100vh; 
-    display: flex; 
+.layout-register-main {
+    height: 100vh;
+    display: flex;
 }
 
 .layout-register-form-side {
-  width: 50%; 
+  width: 50%;
   background-color: #f3f4f6;
-  display: flex; 
-  flex-direction: column; 
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  padding: 2.5rem 3rem; 
+  padding: 2.5rem 3rem;
   overflow-y: auto;
+  height: 100%;
+  box-sizing: border-box;
 }
 
 .layout-register-logo {
@@ -200,6 +201,55 @@ body {
 
 .layout-register-terms-link:hover { text-decoration: underline; }
 
+.layout-register-usertype-row {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.layout-register-usertype-card {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.75rem 0.5rem;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 0.75rem;
+  background-color: #ffffff;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.layout-register-usertype-card:hover {
+  border-color: #a78bfa;
+  background-color: #faf5ff;
+}
+
+.layout-register-usertype-card--selected {
+  border-color: #6366f1;
+  background-color: #eef2ff;
+}
+
+.layout-register-usertype-label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #111827;
+}
+
+.layout-register-usertype-card--selected .layout-register-usertype-label {
+  color: #4f46e5;
+}
+
+.layout-register-usertype-desc {
+  font-size: 0.75rem;
+  color: #6b7280;
+  text-align: center;
+}
+
+.layout-register-usertype-card--selected .layout-register-usertype-desc {
+  color: #6366f1;
+}
+
 .layout-register-btn {
   width: 100%; 
   padding: 0.9rem; 
@@ -230,11 +280,13 @@ body {
 .layout-register-footer-link:hover { color: #7c3aed; }
 
 .layout-register-promo-side {
-  width: 50%; 
+  width: 50%;
   background: linear-gradient(135deg, #7c3aed, #6366f1, #d0acdc);
-  display: flex; 
-  align-items: flex-start; 
+  display: flex;
+  align-items: flex-start;
   padding: 4rem;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
 .layout-register-promo-content { 

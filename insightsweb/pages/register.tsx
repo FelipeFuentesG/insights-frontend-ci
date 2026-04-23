@@ -3,9 +3,18 @@ import Link from "next/link";
 import { useState } from "react";
 
 
+type UserType = "admin" | "marca" | "retail" | null;
+
+const USER_TYPES: { value: UserType; label: string; description: string }[] = [
+  { value: "admin", label: "Admin", description: "Gestiona la plataforma" },
+  { value: "marca", label: "Marca", description: "Gestiona campañas" },
+  { value: "retail", label: "Retail", description: "Gestiona inventario" },
+];
+
 export default function Register() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [userType, setUserType] = useState<UserType>(null);
 
   return (
     <main className="layout-register-main">
@@ -42,6 +51,25 @@ export default function Register() {
                   Apellidos<span className="layout-register-label-required">*</span>
                 </label>
                 <input type="text" placeholder="Apellidos" className="layout-register-input" />
+              </div>
+            </div>
+
+            <div className="layout-register-field">
+              <label className="layout-register-label">
+                Tipo de usuario<span className="layout-register-label-required">*</span>
+              </label>
+              <div className="layout-register-usertype-row">
+                {USER_TYPES.map(({ value, label, description }) => (
+                  <button
+                    key={value}
+                    type="button"
+                    className={`layout-register-usertype-card${userType === value ? " layout-register-usertype-card--selected" : ""}`}
+                    onClick={() => setUserType(value)}
+                  >
+                    <span className="layout-register-usertype-label">{label}</span>
+                    <span className="layout-register-usertype-desc">{description}</span>
+                  </button>
+                ))}
               </div>
             </div>
 

@@ -1,13 +1,13 @@
 "use client";
 import Link from "next/link";
 import Image from "next/image";
-import "./Navbar.css";
+import styles from "./Navbar.module.css";
 
 export default function Navbar() {
   return (
-    <nav className="layout-navbar-landing">
-      <div className="layout-navbar-container">
-        <Link href="/" className="layout-navbar-logo">
+    <nav className={styles["layout-navbar-landing"]}>
+      <div className={styles["layout-navbar-container"]}>
+        <Link href="/" className={styles["layout-navbar-logo"]}>
           <Image
             src="/logo_AndesML.png"
             alt="AndesML"
@@ -18,18 +18,18 @@ export default function Navbar() {
           />
         </Link>
 
-        <div className="layout-navbar-right">
-          <div className="layout-navbar-links">
-            <Link href="#" className="layout-navbar-link">
+        <div className={styles["layout-navbar-right"]}>
+          <div className={styles["layout-navbar-links"]}>
+            <Link href="#" className={styles["layout-navbar-link"]}>
               Sobre Insights
             </Link>
           </div>
 
-          <div className="layout-navbar-actions">
-            <Link href="/login" className="layout-navbar-btn-ingresar">
+          <div className={styles["layout-navbar-actions"]}>
+            <Link href="/login" className={styles["layout-navbar-btn-ingresar"]}>
               Ingresar
             </Link>
-            <Link href="/register" className="layout-navbar-btn-comenzar">
+            <Link href="/register" className={styles["layout-navbar-btn-comenzar"]}>
               Comenzar hoy
             </Link>
           </div>
