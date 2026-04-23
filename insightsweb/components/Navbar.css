@@ -1,0 +1,97 @@
+.layout-navbar-landing {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  background-color: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(12px);
+  border-bottom: none;
+}
+
+.layout-navbar-container {
+  max-width: 90rem;
+  margin: 0 auto;
+  padding: 0 3rem;
+  height: 5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* Links + botones agrupados a la derecha */
+.layout-navbar-right {
+  display: flex;
+  align-items: center;
+  gap: 2.5rem;
+}
+
+.layout-navbar-logo {
+  display: flex;
+  align-items: center;
+  text-decoration: none;
+}
+
+/* Nav links */
+.layout-navbar-links {
+  display: none;
+  align-items: center;
+  gap: 1rem;
+}
+
+@media (min-width: 768px) {
+  .layout-navbar-links {
+    display: flex;
+  }
+}
+
+.layout-navbar-link {
+  font-size: 0.885rem;
+  color: #000000;
+  font-weight: 590;
+  letter-spacing: 0.5px;
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.layout-navbar-link:hover {
+  color: #c391f4;
+}
+
+/* Action buttons */
+.layout-navbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.layout-navbar-btn-ingresar {
+  font-size: 0.875rem;
+  font-weight: 500;
+  padding: 0.5rem 1.25rem;
+  border-radius: 0.5rem;
+  background-color: #e0e0e0c4;
+  color: #000000;
+  text-decoration: none;
+  transition: background-color 0.15s ease;
+}
+
+.layout-navbar-btn-ingresar:hover {
+  background-color: #000000;
+  color: #ffffff;
+}
+
+.layout-navbar-btn-comenzar {
+  font-size: 0.875rem;
+  font-weight: 500;
+  padding: 0.5rem 1.25rem;
+  border-radius: 0.5rem;
+  background: linear-gradient(135deg, #b35cf6,#c391f4);
+  color: white;
+  text-decoration: none;
+  transition: opacity 0.15s ease;
+}
+
+.layout-navbar-btn-comenzar:hover {
+  opacity: 0.85;
+}
