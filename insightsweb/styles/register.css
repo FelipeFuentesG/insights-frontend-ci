@@ -107,7 +107,37 @@ body {
 .layout-register-input::placeholder { color: #9ca3af; }
 .layout-register-input:focus { border-color: #6366f1; }
 
-.layout-register-input-wrapper { 
+.layout-register-user-type-group {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.layout-register-user-type-btn {
+  flex: 1;
+  padding: 0.65rem 0.5rem;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 0.75rem;
+  background-color: #ffffff;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #6b7280;
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease, background-color 0.15s ease;
+}
+
+.layout-register-user-type-btn:hover {
+  border-color: #6366f1;
+  color: #6366f1;
+}
+
+.layout-register-user-type-btn--active {
+  border-color: #6366f1;
+  background-color: #eef2ff;
+  color: #4f46e5;
+  font-weight: 600;
+}
+
+.layout-register-input-wrapper {
     position: relative; 
     display: flex; 
     align-items: center; 
