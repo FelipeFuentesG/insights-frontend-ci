@@ -3,16 +3,9 @@ import Link from "next/link";
 import { useState } from "react";
 
 
-const USER_TYPES = [
-  { value: "marca", label: "Marca" },
-  { value: "admin", label: "Admin" },
-  { value: "retail", label: "Retail" },
-];
-
 export default function Register() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
-  const [userType, setUserType] = useState("");
 
   return (
     <main className="layout-register-main">
@@ -57,24 +50,6 @@ export default function Register() {
                 Email<span className="layout-register-label-required">*</span>
               </label>
               <input type="email" placeholder="Email" className="layout-register-input" />
-            </div>
-
-            <div className="layout-register-field">
-              <label className="layout-register-label">
-                Tipo de usuario<span className="layout-register-label-required">*</span>
-              </label>
-              <div className="layout-register-user-type-group">
-                {USER_TYPES.map((type) => (
-                  <button
-                    key={type.value}
-                    type="button"
-                    className={`layout-register-user-type-btn${userType === type.value ? " layout-register-user-type-btn--active" : ""}`}
-                    onClick={() => setUserType(type.value)}
-                  >
-                    {type.label}
-                  </button>
-                ))}
-              </div>
             </div>
 
             <div className="layout-register-field">
