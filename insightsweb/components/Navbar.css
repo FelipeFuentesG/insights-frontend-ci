@@ -19,7 +19,6 @@
   justify-content: space-between;
 }
 
-/* Links + botones agrupados a la derecha */
 .layout-navbar-right {
   display: flex;
   align-items: center;
@@ -32,7 +31,6 @@
   text-decoration: none;
 }
 
-/* Nav links */
 .layout-navbar-links {
   display: none;
   align-items: center;
@@ -58,7 +56,6 @@
   color: #c391f4;
 }
 
-/* Action buttons */
 .layout-navbar-actions {
   display: flex;
   align-items: center;

@@ -1,6 +1,5 @@
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
-import "./landing.css";
 
 export default function Landing() {
   return (
