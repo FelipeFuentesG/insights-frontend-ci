@@ -20,11 +20,9 @@ export default function Navbar() {
 
         <div className="layout-navbar-right">
           <div className="layout-navbar-links">
-            {["Características", "Dashboards", "Sobre Insights"].map((item) => (
-              <Link key={item} href="#" className="layout-navbar-link">
-                {item}
-              </Link>
-            ))}
+            <Link href="#" className="layout-navbar-link">
+              Sobre Insights
+            </Link>
           </div>
 
           <div className="layout-navbar-actions">
