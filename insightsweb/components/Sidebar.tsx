@@ -1,5 +1,3 @@
-import "./Sidebar.css";
-
 type NavItem = {
   label: string;
   imgSrc: string;
