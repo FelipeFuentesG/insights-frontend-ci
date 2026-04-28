@@ -2,10 +2,40 @@ import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/router";
+import { apiFetch } from "../lib/api";
 
 export default function Login() {
-  const [showPassword, setShowPassword] = useState(false);
+  const [email, setEmail] = useState("");
+  const [idUsuario, setIdUsuario] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
   const router = useRouter();
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setError(null);
+    setLoading(true);
+
+    try {
+      const res = await apiFetch("/auth/login", {
+        method: "POST",
+        body: JSON.stringify({ email, idUsuario: Number(idUsuario) }),
+      });
+
+      if (!res.ok) {
+        setError("Usuario no encontrado.");
+        return;
+      }
+
+      const user = await res.json();
+      localStorage.setItem("user", JSON.stringify(user));
+      router.push("/home");
+    } catch {
+      setError("No se pudo conectar con el servidor.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <main className="layout-login-main">
@@ -29,40 +59,39 @@ export default function Login() {
             </p>
           </div>
 
-          <form className="layout-login-form">
+          <form className="layout-login-form" onSubmit={handleSubmit}>
             <div className="layout-login-field">
               <label className="layout-login-label">Email</label>
               <input
                 type="email"
                 placeholder="nombre@empresa.com"
                 className="layout-login-input"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
               />
             </div>
 
             <div className="layout-login-field">
-              <label className="layout-login-label">Contraseña</label>
-              <div className="layout-login-input-wrapper">
-                <input
-                  type={showPassword ? "text" : "password"}
-                  placeholder="Contraseña"
-                  className="layout-login-input"
-                />
-                <button
-                  type="button"
-                  className="layout-login-eye"
-                  onClick={() => setShowPassword(!showPassword)}
-                >
-                  {showPassword ? <img src="/eye-show.svg" alt="ocultar" width="20" height="20" /> : <img src="/eye-off.svg" alt="mostrar" width="20" height="20" />}
-                </button>
-              </div>
+              <label className="layout-login-label">ID de usuario</label>
+              <input
+                type="number"
+                placeholder="Ej: 123"
+                className="layout-login-input"
+                value={idUsuario}
+                onChange={(e) => setIdUsuario(e.target.value)}
+                required
+              />
             </div>
 
+            {error && <p className="layout-login-error">{error}</p>}
+
             <button
-              type="button"
+              type="submit"
               className="layout-login-btn"
-              onClick={() => router.push("/home")}
+              disabled={loading}
             >
-              Iniciar sesión
+              {loading ? "Iniciando sesión..." : "Iniciar sesión"}
             </button>
           </form>
 

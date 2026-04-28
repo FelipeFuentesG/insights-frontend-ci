@@ -1,7 +1,8 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
-
+import { useRouter } from "next/router";
+import { apiFetch } from "../lib/api";
 
 type UserType = "admin" | "marca" | "retail" | null;
 
@@ -15,6 +16,50 @@ export default function Register() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [userType, setUserType] = useState<UserType>(null);
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const router = useRouter();
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setError(null);
+
+    if (!userType) {
+      setError("Selecciona un tipo de usuario.");
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setError("Las contraseñas no coinciden.");
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const res = await apiFetch("/auth/register", {
+        method: "POST",
+        body: JSON.stringify({ firstName, lastName, email, password, userType }),
+      });
+
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        setError(body?.message ?? "No se pudo crear la cuenta.");
+        return;
+      }
+
+      router.push("/login");
+    } catch {
+      setError("No se pudo conectar con el servidor.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <main className="layout-register-main">
@@ -38,19 +83,33 @@ export default function Register() {
             </p>
           </div>
 
-          <form className="layout-register-form">
+          <form className="layout-register-form" onSubmit={handleSubmit}>
             <div className="layout-register-row">
               <div className="layout-register-field">
                 <label className="layout-register-label">
                   Nombre<span className="layout-register-label-required">*</span>
                 </label>
-                <input type="text" placeholder="Nombre" className="layout-register-input" />
+                <input
+                  type="text"
+                  placeholder="Nombre"
+                  className="layout-register-input"
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                  required
+                />
               </div>
               <div className="layout-register-field">
                 <label className="layout-register-label">
                   Apellidos<span className="layout-register-label-required">*</span>
                 </label>
-                <input type="text" placeholder="Apellidos" className="layout-register-input" />
+                <input
+                  type="text"
+                  placeholder="Apellidos"
+                  className="layout-register-input"
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                  required
+                />
               </div>
             </div>
 
@@ -77,7 +136,14 @@ export default function Register() {
               <label className="layout-register-label">
                 Email<span className="layout-register-label-required">*</span>
               </label>
-              <input type="email" placeholder="Email" className="layout-register-input" />
+              <input
+                type="email"
+                placeholder="Email"
+                className="layout-register-input"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
             </div>
 
             <div className="layout-register-field">
@@ -89,9 +155,14 @@ export default function Register() {
                   type={showPassword ? "text" : "password"}
                   placeholder="Contraseña"
                   className="layout-register-input"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
                 />
                 <button type="button" className="layout-register-eye" onClick={() => setShowPassword(!showPassword)}>
-                  {showPassword ? <img src="/eye-show.svg" alt="ocultar" width="20" height="20" /> : <img src="/eye-off.svg" alt="mostrar" width="20" height="20" />}
+                  {showPassword
+                    ? <img src="/eye-show.svg" alt="ocultar" width="20" height="20" />
+                    : <img src="/eye-off.svg" alt="mostrar" width="20" height="20" />}
                 </button>
               </div>
             </div>
@@ -105,9 +176,14 @@ export default function Register() {
                   type={showConfirm ? "text" : "password"}
                   placeholder="Contraseña"
                   className="layout-register-input"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  required
                 />
                 <button type="button" className="layout-register-eye" onClick={() => setShowConfirm(!showConfirm)}>
-                  {showConfirm ? <img src="/eye-show.svg" alt="ocultar" width="20" height="20" /> : <img src="/eye-off.svg" alt="mostrar" width="20" height="20" />}
+                  {showConfirm
+                    ? <img src="/eye-show.svg" alt="ocultar" width="20" height="20" />
+                    : <img src="/eye-off.svg" alt="mostrar" width="20" height="20" />}
                 </button>
               </div>
             </div>
@@ -124,13 +200,15 @@ export default function Register() {
             </div>
 
             <label className="layout-register-terms">
-              <input type="checkbox" className="layout-register-terms-checkbox" />
+              <input type="checkbox" className="layout-register-terms-checkbox" required />
               I agree to the{" "}
               <Link href="#" className="layout-register-terms-link">Terms &amp; Conditions.</Link>
             </label>
 
-            <button type="submit" className="layout-register-btn">
-              Crear mi cuenta
+            {error && <p className="layout-login-error">{error}</p>}
+
+            <button type="submit" className="layout-register-btn" disabled={loading}>
+              {loading ? "Creando cuenta..." : "Crear mi cuenta"}
             </button>
           </form>
 
