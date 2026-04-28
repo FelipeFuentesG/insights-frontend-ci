@@ -5,14 +5,13 @@ import { useRouter } from "next/router";
 import { apiFetch } from "../lib/api";
 
 export default function Login() {
-  const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [idUsuario, setIdUsuario] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError(null);
     setLoading(true);
@@ -20,17 +19,16 @@ export default function Login() {
     try {
       const res = await apiFetch("/auth/login", {
         method: "POST",
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email, idUsuario: Number(idUsuario) }),
       });
 
       if (!res.ok) {
-        const body = await res.json().catch(() => null);
-        setError(body?.message ?? "Email o contraseña incorrectos.");
+        setError("Usuario no encontrado.");
         return;
       }
 
-      const { token } = await res.json();
-      localStorage.setItem("token", token);
+      const user = await res.json();
+      localStorage.setItem("user", JSON.stringify(user));
       router.push("/home");
     } catch {
       setError("No se pudo conectar con el servidor.");
@@ -75,26 +73,15 @@ export default function Login() {
             </div>
 
             <div className="layout-login-field">
-              <label className="layout-login-label">Contraseña</label>
-              <div className="layout-login-input-wrapper">
-                <input
-                  type={showPassword ? "text" : "password"}
-                  placeholder="Contraseña"
-                  className="layout-login-input"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                />
-                <button
-                  type="button"
-                  className="layout-login-eye"
-                  onClick={() => setShowPassword(!showPassword)}
-                >
-                  {showPassword
-                    ? <img src="/eye-show.svg" alt="ocultar" width="20" height="20" />
-                    : <img src="/eye-off.svg" alt="mostrar" width="20" height="20" />}
-                </button>
-              </div>
+              <label className="layout-login-label">ID de usuario</label>
+              <input
+                type="number"
+                placeholder="Ej: 123"
+                className="layout-login-input"
+                value={idUsuario}
+                onChange={(e) => setIdUsuario(e.target.value)}
+                required
+              />
             </div>
 
             {error && <p className="layout-login-error">{error}</p>}
