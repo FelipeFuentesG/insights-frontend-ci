@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: insightsweb
+    runtime: node
+    rootDir: insightsweb
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NEXT_PUBLIC_API_URL
+        value: https://two026-1-ti-s2-grupo6-backend.onrender.com
