@@ -4,6 +4,8 @@ import "../styles/landing.css";
 import "../styles/login.css";
 import "../styles/register.css";
 import "../styles/home.css";
+import "../styles/idProducto.css";
+import "../styles/productos.css";  
 import "../components/Sidebar.css";
 
 const geistSans = Geist({ subsets: ["latin"] });
