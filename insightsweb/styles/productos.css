@@ -1,0 +1,220 @@
+/* ─── Layout ─────────────────────────────────────────────────────────────── */
+
+.pl-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* ─── Header sup ─────────────────────────────────────────────────────────── */
+
+.pl-header-sup {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: #9ca3af;
+  margin: 0 0 2px;
+}
+
+/* ─── Top row (título + buscador) ────────────────────────────────────────── */
+
+.pl-top-row {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.pl-title {
+  font-size: 1.375rem;
+  font-weight: 700;
+  color: #111827;
+  margin: 0 0 4px;
+}
+
+.pl-subtitle {
+  font-size: 0.8125rem;
+  color: #9ca3af;
+  margin: 0;
+}
+
+.pl-search-wrapper {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.pl-search-icon {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.pl-search-input {
+  height: 36px;
+  padding: 0 12px 0 32px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #111827;
+  font-size: 0.8125rem;
+  outline: none;
+  width: 220px;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.pl-search-input::placeholder {
+  color: #9ca3af;
+}
+
+.pl-search-input:focus {
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
+}
+
+/* ─── Grid ───────────────────────────────────────────────────────────────── */
+
+.pl-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 14px;
+}
+
+/* ─── Card ───────────────────────────────────────────────────────────────── */
+
+.pl-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 14px;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  transition: box-shadow 0.18s, border-color 0.18s, transform 0.12s;
+}
+
+.pl-card:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  border-color: #c7d2fe;
+  transform: translateY(-1px);
+}
+
+.pl-card:active {
+  transform: translateY(0);
+}
+
+.pl-card-img-wrapper {
+  width: 52px;
+  height: 52px;
+  border-radius: 8px;
+  overflow: hidden;
+  flex-shrink: 0;
+  background: #f3f4f6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pl-card-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.pl-card-img-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+
+.pl-card-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.pl-card-name {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #111827;
+  margin: 0 0 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pl-card-id {
+  font-size: 0.75rem;
+  color: #9ca3af;
+  margin: 0;
+}
+
+.pl-card-arrow {
+  color: #d1d5db;
+  flex-shrink: 0;
+  transition: color 0.15s, transform 0.15s;
+}
+
+.pl-card:hover .pl-card-arrow {
+  color: #6366f1;
+  transform: translateX(2px);
+}
+
+/* ─── Skeleton ───────────────────────────────────────────────────────────── */
+
+.pl-card--skeleton {
+  pointer-events: none;
+}
+
+.pl-skeleton-box {
+  background: linear-gradient(90deg, #f3f4f6 25%, #e9eaf0 50%, #f3f4f6 75%);
+  background-size: 200% 100%;
+  animation: pl-shimmer 1.4s infinite;
+}
+
+.pl-skeleton-line {
+  border-radius: 4px;
+  background: linear-gradient(90deg, #f3f4f6 25%, #e9eaf0 50%, #f3f4f6 75%);
+  background-size: 200% 100%;
+  animation: pl-shimmer 1.4s infinite;
+  margin-bottom: 6px;
+}
+
+.pl-skeleton-line--lg {
+  height: 13px;
+  width: 75%;
+}
+
+.pl-skeleton-line--sm {
+  height: 11px;
+  width: 40%;
+  margin-bottom: 0;
+}
+
+@keyframes pl-shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ─── Empty state ────────────────────────────────────────────────────────── */
+
+.pl-empty {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 0;
+}
+
+.pl-empty-text {
+  color: #9ca3af;
+  font-size: 0.875rem;
+  text-align: center;
+  margin: 0;
+}
