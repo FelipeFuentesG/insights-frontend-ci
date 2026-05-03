@@ -7,11 +7,12 @@ import { apiFetch } from "../../lib/api";
 
 interface ProductoResumen {
   idProducto: number;
+  idMarca: number;
   nombre: string;
   urlImagen: string | null;
 }
 
-type Rol = "admin" | "retailer" | "marca";
+type Rol = "admin_global_andesml" | "admin_retailer" | "admin_marca";
 
 interface User {
   idUsuario: number;
@@ -26,14 +27,14 @@ interface User {
 
 function getEndpoint(user: User): string {
   switch (user.rol) {
-    case "admin":
+    case "admin_global_andesml":
       // Admin global: usa retailer 1 como punto de entrada o
       // en el futuro tendrá su propio endpoint. Por ahora
       // se puede extender cuando exista el endpoint de admin.
       throw new Error("El admin global debe seleccionar un retailer primero.");
-    case "retailer":
+    case "admin_retailer":
       return `/db/retailers/${user.idRetailer}/productos`;
-    case "marca":
+    case "admin_marca":
       return `/db/marcas/${user.idMarca}/productos`;
   }
 }
@@ -144,7 +145,7 @@ export default function ProductosPage() {
   const irAProducto = (producto: ProductoResumen) => {
     if (!user) return;
     // Guardamos el nombre del producto en el user para mostrarlo en el dashboard
-    const userActualizado = { ...user, nombre_producto: producto.nombre };
+    const userActualizado = { ...user, nombre_producto: producto.nombre, idMarcaProducto: producto.idMarca, };
     localStorage.setItem("user", JSON.stringify(userActualizado));
     router.push(`/productos/${producto.idProducto}`);
   };
@@ -163,9 +164,9 @@ export default function ProductosPage() {
     .toUpperCase();
 
   const subtitulo: Record<Rol, string> = {
-    admin: "Todos los productos de la plataforma",
-    retailer: "Todos los productos de tu retailer",
-    marca: "Productos de tu marca",
+    admin_global_andesml: "Todos los productos de la plataforma",
+    admin_retailer: "Todos los productos de tu retailer",
+    admin_marca: "Productos de tu marca",
   };
 
   // ── Render ────────────────────────────────────────────────────────────────

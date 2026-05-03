@@ -153,7 +153,7 @@ export default function ProductoDashboard() {
     }
     const user = JSON.parse(stored);
     setUserName(user.nombre ?? "Usuario");
-    setIdMarca(user.id_marca ?? null);
+    setIdMarca(user.idMarcaProducto ?? user.idMarca ?? null);
     if (user.nombre_producto) setNombreProducto(user.nombre_producto);
   }, [router]);
 
