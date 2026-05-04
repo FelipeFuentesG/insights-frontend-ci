@@ -23,15 +23,18 @@ interface User {
   rol: Rol;
 }
 
+interface RetailerResumen {
+  idRetailer: number;
+  nombre: string;
+}
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function getEndpoint(user: User): string {
+function getEndpoint(user: User, retailerSeleccionado: number | null): string {
   switch (user.rol) {
     case "admin_global_andesml":
-      // Admin global: usa retailer 1 como punto de entrada o
-      // en el futuro tendrá su propio endpoint. Por ahora
-      // se puede extender cuando exista el endpoint de admin.
-      throw new Error("El admin global debe seleccionar un retailer primero.");
+      if (!retailerSeleccionado) throw new Error("Seleccionar Retailer");
+      return `/db/retailers/${retailerSeleccionado}/productos`;
     case "admin_retailer":
       return `/db/retailers/${user.idRetailer}/productos`;
     case "admin_marca":
@@ -103,6 +106,8 @@ export default function ProductosPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busqueda, setBusqueda] = useState("");
+  const [retailers, setRetailers] = useState<RetailerResumen[]>([]);
+  const [retailerSeleccionado, setRetailerSeleccionado] = useState<number | null>(null);
 
   // ── Auth guard ────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -115,13 +120,22 @@ export default function ProductosPage() {
     setUser(parsed);
   }, [router]);
 
+  // ── Fetch retailers ───────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!user || user.rol !== "admin_global_andesml") return;
+    apiFetch("/db/retailers")
+      .then((res) => res.json())
+      .then((data: RetailerResumen[]) => setRetailers(data))
+      .catch(() => setError("No se pudieron cargar los retailers."));
+  }, [user]);
+
   // ── Fetch productos ───────────────────────────────────────────────────────
   useEffect(() => {
     if (!user) return;
 
     let endpoint: string;
     try {
-      endpoint = getEndpoint(user);
+      endpoint = getEndpoint(user, retailerSeleccionado);
     } catch {
       // Admin global: de momento no tiene endpoint propio
       setError("El administrador global debe seleccionar un retailer para ver sus productos.");
@@ -139,7 +153,7 @@ export default function ProductosPage() {
       .then((data: ProductoResumen[]) => setProductos(data))
       .catch((e: Error) => setError(e.message))
       .finally(() => setLoading(false));
-  }, [user]);
+  }, [user, retailerSeleccionado]);
 
   // ── Navegación hacia el dashboard de producto ─────────────────────────────
   const irAProducto = (producto: ProductoResumen) => {
@@ -231,8 +245,28 @@ export default function ProductosPage() {
             </div>
           </div>
 
-          {/* Error */}
-          {error && <div className="pd-error-banner">{error}</div>}
+          {/* Selector de retailer para admin global */}
+          {user?.rol === "admin_global_andesml" && !retailerSeleccionado && (
+            <div className="pl-retailer-selector">
+              <p className="pl-retailer-selector-title">Selecciona un retailer para ver sus productos</p>
+              <div className="pl-retailer-grid">
+                {retailers.map((r) => (
+                  <button
+                    key={r.idRetailer}
+                    className="pl-retailer-btn"
+                    onClick={() => setRetailerSeleccionado(r.idRetailer)}
+                  >
+                    {r.nombre}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Error — solo mostrar si no es el error de admin sin retailer */}
+          {error && user?.rol !== "admin_global_andesml" && (
+            <div className="pd-error-banner">{error}</div>
+          )}
 
           {/* Grid */}
           <div className="pl-grid">

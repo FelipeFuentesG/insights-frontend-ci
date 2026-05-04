@@ -1,6 +1,8 @@
 
 .pd-main {
   background-color: #fbfafa;
+  height: 100vh;
+  overflow-y: auto;
 }
 
 .pd-content {
