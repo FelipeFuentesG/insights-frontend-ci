@@ -1,5 +1,10 @@
 /* ─── Layout ─────────────────────────────────────────────────────────────── */
 
+.home-main {
+  height: 100vh;
+  overflow-y: auto;
+}
+
 .pl-content {
   display: flex;
   flex-direction: column;
@@ -217,4 +222,42 @@
   font-size: 0.875rem;
   text-align: center;
   margin: 0;
+}
+
+/* ─── Selector de retailer (admin global de AndesML) ────────────────────────────────── */
+
+.pl-retailer-selector {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.pl-retailer-selector-title {
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin: 0;
+}
+
+.pl-retailer-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.pl-retailer-btn {
+  padding: 10px 20px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #111827;
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+}
+
+.pl-retailer-btn:hover {
+  border-color: #6366f1;
+  background: #eef2ff;
+  color: #6366f1;
 }
