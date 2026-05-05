@@ -247,9 +247,14 @@ export default function ProductoDashboard() {
             </button>
             <div>
               <p className="pd-header-sup">Dashboard de producto</p>
-              <p className="home-greeting">
-                {nombreProducto || `Producto #${idProducto}`}
-              </p>
+              <div style={{ display: "flex", alignItems: "baseline", gap: "10px" }}>
+                <p className="home-greeting" style={{ margin: 0 }}>
+                  {nombreProducto || `Producto #${idProducto}`}
+                </p>
+                <p style={{ fontSize: "0.75rem", color: "#9ca3af", margin: 0 }}>
+                  ID #{idProducto} · ID Marca #{idMarca}
+                </p>
+              </div>
             </div>
           </div>
 
@@ -387,7 +392,7 @@ export default function ProductoDashboard() {
                   {tipoGrafico === "line" ? (
                     <LineChart
                       data={serie}
-                      margin={{ top: 4, right: 20, left: 10, bottom: 0 }}
+                      margin={{ top: 4, right: 40, left: 10, bottom: 0 }}
                     >
                       <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                       <XAxis
@@ -431,7 +436,7 @@ export default function ProductoDashboard() {
                   ) : (
                     <BarChart
                       data={serie}
-                      margin={{ top: 4, right: 20, left: 10, bottom: 0 }}
+                      margin={{ top: 4, right: 40, left: 10, bottom: 0 }}
                     >
                       <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                       <XAxis
