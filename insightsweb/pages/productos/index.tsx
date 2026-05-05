@@ -72,7 +72,7 @@ function ProductoCard({
       </div>
       <div className="pl-card-body">
         <p className="pl-card-name">{producto.nombre}</p>
-        <p className="pl-card-id">ID #{producto.idProducto}</p>
+        <p className="pl-card-id">ID #{producto.idProducto} · ID Marca #{producto.idMarca}</p>
       </div>
       <div className="pl-card-arrow">
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none">

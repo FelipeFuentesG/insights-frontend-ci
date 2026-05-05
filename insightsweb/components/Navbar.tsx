@@ -13,7 +13,6 @@ export default function Navbar() {
             alt="AndesML"
             height={36}
             width={150}
-            style={{ width: "auto", height: "36px" }}
             priority
           />
         </Link>
