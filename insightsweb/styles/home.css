@@ -166,3 +166,12 @@
   color: #888888;
   line-height: 1.3;
 }
+
+.home-coming-soon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+  color: #9ca3af;
+  font-size: 0.9rem;
+}

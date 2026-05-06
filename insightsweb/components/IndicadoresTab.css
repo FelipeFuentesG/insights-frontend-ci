@@ -1,0 +1,334 @@
+/* ── Layout ─────────────────────────────────────────────────────────── */
+.ind-root {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* ── Filtros ─────────────────────────────────────────────────────────── */
+.ind-filters-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.75rem;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+}
+
+.ind-filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ind-filter-label {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.ind-filter-input {
+  padding: 0.4rem 0.65rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 7px;
+  font-size: 0.85rem;
+  color: #111827;
+  background: #fafafa;
+  outline: none;
+  transition: border-color 0.15s;
+  height: 34px;
+}
+
+.ind-filter-input:focus {
+  border-color: #6366f1;
+  background: #ffffff;
+}
+
+.ind-apply-btn {
+  padding: 0 1.1rem;
+  height: 34px;
+  background: #6366f1;
+  color: #ffffff;
+  border: none;
+  border-radius: 7px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+  align-self: flex-end;
+}
+
+.ind-apply-btn:hover:not(:disabled) { background: #4f46e5; }
+.ind-apply-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+
+/* ── Contexto ────────────────────────────────────────────────────────── */
+.ind-context-label {
+  font-size: 0.8125rem;
+  color: #6b7280;
+  margin: 0;
+}
+
+.ind-error-banner {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #dc2626;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+}
+
+/* ── KPIs ────────────────────────────────────────────────────────────── */
+.ind-kpi-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+}
+
+@media (max-width: 1100px) { .ind-kpi-row { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 640px)  { .ind-kpi-row { grid-template-columns: 1fr; } }
+
+.ind-kpi-card {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 1.1rem 1.25rem;
+}
+
+.ind-kpi-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin: 0 0 0.35rem;
+}
+
+.ind-kpi-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #111827;
+  margin: 0 0 0.25rem;
+  line-height: 1.2;
+}
+
+.ind-kpi-sub {
+  font-size: 0.72rem;
+  color: #9ca3af;
+  margin: 0;
+}
+
+/* ── Cards ───────────────────────────────────────────────────────────── */
+.ind-card {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 1.25rem 1.5rem;
+}
+
+.ind-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.1rem;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.ind-card-header-left {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.ind-card-title {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+}
+
+.ind-badge {
+  font-size: 0.75rem;
+  color: #6b7280;
+  background: #f3f4f6;
+  border-radius: 20px;
+  padding: 2px 10px;
+}
+
+/* ── Segmented control ───────────────────────────────────────────────── */
+.ind-seg {
+  display: flex;
+  gap: 2px;
+  background: #f3f4f6;
+  border-radius: 7px;
+  padding: 3px;
+}
+
+.ind-seg-btn {
+  padding: 4px 10px;
+  border: none;
+  background: transparent;
+  border-radius: 5px;
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: #6b7280;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.ind-seg-btn--active {
+  background: #ffffff;
+  color: #111827;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.ind-seg-btn--accent {
+  background: #ffffff;
+  color: #6366f1;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* ── Chart ───────────────────────────────────────────────────────────── */
+.ind-chart-area {
+  height: 300px;
+}
+
+.ind-skeleton {
+  height: 100%;
+  background: linear-gradient(90deg, #f3f4f6 25%, #e9eaec 50%, #f3f4f6 75%);
+  background-size: 200% 100%;
+  animation: ind-shimmer 1.4s infinite;
+  border-radius: 8px;
+}
+
+@keyframes ind-shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.ind-empty {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ind-empty-text {
+  font-size: 0.875rem;
+  color: #9ca3af;
+  margin: 0;
+}
+
+/* ── Top productos ───────────────────────────────────────────────────── */
+.ind-top-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.ind-top-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.ind-top-rank {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #9ca3af;
+  width: 28px;
+  flex-shrink: 0;
+  text-align: right;
+}
+
+.ind-top-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.ind-top-nombre {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: #111827;
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 4px;
+}
+
+.ind-top-bar-wrap {
+  height: 5px;
+  background: #f3f4f6;
+  border-radius: 99px;
+  overflow: hidden;
+}
+
+.ind-top-bar {
+  height: 100%;
+  background: #6366f1;
+  border-radius: 99px;
+  transition: width 0.4s ease;
+  min-width: 4px;
+}
+
+.ind-top-nums {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  flex-shrink: 0;
+}
+
+.ind-top-ingresos {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #111827;
+}
+
+.ind-top-unidades {
+  font-size: 0.7rem;
+  color: #9ca3af;
+}
+
+/* ── Tabla ───────────────────────────────────────────────────────────── */
+.ind-table-wrapper {
+  overflow-x: auto;
+}
+
+.ind-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8375rem;
+}
+
+.ind-th {
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-bottom: 2px solid #f3f4f6;
+  white-space: nowrap;
+}
+
+.ind-th--right { text-align: right; }
+
+.ind-tr { border-bottom: 1px solid #f9fafb; }
+.ind-tr--alt { background: #fafafa; }
+
+.ind-td {
+  padding: 0.6rem 0.75rem;
+  color: #374151;
+  white-space: nowrap;
+}
+
+.ind-td--right { text-align: right; }
+.ind-td--mono  { font-family: ui-monospace, monospace; font-size: 0.8rem; color: #6b7280; }

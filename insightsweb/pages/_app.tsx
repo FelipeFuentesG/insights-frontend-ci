@@ -7,6 +7,7 @@ import "../styles/home.css";
 import "../styles/idProducto.css";
 import "../styles/productos.css";  
 import "../components/Sidebar.css";
+import "../components/IndicadoresTab.css";
 
 const geistSans = Geist({ subsets: ["latin"] });
 
