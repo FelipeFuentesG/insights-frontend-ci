@@ -137,7 +137,6 @@ export default function ProductosPage() {
     try {
       endpoint = getEndpoint(user, retailerSeleccionado);
     } catch {
-      // Admin global: de momento no tiene endpoint propio
       setError("El administrador global debe seleccionar un retailer para ver sus productos.");
       return;
     }
