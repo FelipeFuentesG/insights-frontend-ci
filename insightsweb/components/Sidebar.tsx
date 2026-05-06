@@ -19,6 +19,7 @@ const NAV_ITEMS: NavItem[] = [
     chevron: true,
     children: [
       { label: "Dashboard de Productos", href: "/productos" },
+      { label: "Dashboard Ventas Totales", href: "/ventas" },
     ],
   },
   { label: "Insights", imgSrc: "/bulb.svg", href: "/home" },
