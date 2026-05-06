@@ -125,6 +125,7 @@ export default function ProductoDashboard() {
 
   // User / tenant
   const [idMarca, setIdMarca] = useState<number | null>(null);
+  const [idRetailer, setIdRetailer] = useState<number | null>(null);
   const [userName, setUserName] = useState("Usuario");
   const [menuOpen, setMenuOpen] = useState(false);
   const [nombreProducto, setNombreProducto] = useState("");
@@ -154,6 +155,7 @@ export default function ProductoDashboard() {
     const user = JSON.parse(stored);
     setUserName(user.nombre ?? "Usuario");
     setIdMarca(user.idMarcaProducto ?? user.idMarca ?? null);
+    setIdRetailer(user.idRetailer ?? null);
     if (user.nombre_producto) setNombreProducto(user.nombre_producto);
   }, [router]);
 
@@ -252,7 +254,7 @@ export default function ProductoDashboard() {
                   {nombreProducto || `Producto #${idProducto}`}
                 </p>
                 <p style={{ fontSize: "0.75rem", color: "#9ca3af", margin: 0 }}>
-                  ID #{idProducto} · ID Marca #{idMarca}
+                  ID Producto #{idProducto} · ID Marca #{idMarca} {idRetailer ? ` · ID Retailer #${idRetailer}` : ""}
                 </p>
               </div>
             </div>

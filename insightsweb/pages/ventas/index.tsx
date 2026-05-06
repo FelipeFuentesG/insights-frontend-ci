@@ -307,9 +307,17 @@ export default function VentasTotalesPage() {
             )}
             <div>
               <p className="pd-header-sup">Tableros</p>
-              <p className="home-greeting">
-                Ventas Totales{nombreMarca ? ` — ${nombreMarca}` : ""}
-              </p>
+              <div style={{ display: "flex", alignItems: "baseline", gap: "10px" }}>
+                <p className="home-greeting" style={{ margin: 0 }}>
+                  Ventas Totales{nombreMarca ? ` — ${nombreMarca}` : ""}
+                </p>
+                {marcaSeleccionada && (
+                  <p style={{ fontSize: "0.75rem", color: "#9ca3af", margin: 0 }}>
+                    ID Marca #{marcaSeleccionada}
+                    {idRetailerActivo ? ` · ID Retailer #${idRetailerActivo}` : ""}
+                  </p>
+                )}
+              </div>
             </div>
           </div>
 
@@ -484,7 +492,7 @@ export default function VentasTotalesPage() {
                   ) : (
                     <ResponsiveContainer width="100%" height={300}>
                       {tipoGrafico === "line" ? (
-                        <LineChart data={serie} margin={{ top: 4, right: 20, left: 10, bottom: 0 }}>
+                        <LineChart data={serie} margin={{ top: 4, right: 40, left: 10, bottom: 0 }}>
                           <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                           <XAxis dataKey="periodo" tick={{ fontSize: 12, fill: "#6b7280" }} axisLine={false} tickLine={false} />
                           <YAxis tickFormatter={metricaFormatter} tick={{ fontSize: 11, fill: "#6b7280" }} axisLine={false} tickLine={false} width={88} />
@@ -496,7 +504,7 @@ export default function VentasTotalesPage() {
                           <Line type="monotone" dataKey={metricaActiva} stroke="#6366f1" strokeWidth={2.5} dot={{ r: 4, fill: "#6366f1", strokeWidth: 0 }} activeDot={{ r: 6, fill: "#4f46e5" }} name={metricaLabel} />
                         </LineChart>
                       ) : (
-                        <BarChart data={serie} margin={{ top: 4, right: 20, left: 10, bottom: 0 }}>
+                        <BarChart data={serie} margin={{ top: 4, right: 40, left: 10, bottom: 0 }}>
                           <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                           <XAxis dataKey="periodo" tick={{ fontSize: 12, fill: "#6b7280" }} axisLine={false} tickLine={false} />
                           <YAxis tickFormatter={metricaFormatter} tick={{ fontSize: 11, fill: "#6b7280" }} axisLine={false} tickLine={false} width={88} />
