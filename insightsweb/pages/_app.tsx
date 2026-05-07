@@ -2,7 +2,6 @@ import type { AppProps } from "next/app";
 import { Geist } from "next/font/google";
 import "../styles/landing.css";
 import "../styles/login.css";
-import "../styles/register.css";
 import "../styles/home.css";
 import "../styles/idProducto.css";
 import "../styles/productos.css";  

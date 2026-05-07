@@ -28,9 +28,6 @@ export default function Navbar() {
             <Link href="/login" className={styles["layout-navbar-btn-ingresar"]}>
               Ingresar
             </Link>
-            <Link href="/register" className={styles["layout-navbar-btn-comenzar"]}>
-              Comenzar hoy
-            </Link>
           </div>
         </div>
       </div>
