@@ -158,7 +158,7 @@ export default function ProductosPage() {
   const irAProducto = (producto: ProductoResumen) => {
     if (!user) return;
     // Guardamos el nombre del producto en el user para mostrarlo en el dashboard
-    const userActualizado = { ...user, nombre_producto: producto.nombre, idMarcaProducto: producto.idMarca, };
+    const userActualizado = { ...user, nombre_producto: producto.nombre, idMarcaProducto: producto.idMarca, idRetailerSeleccionado: retailerSeleccionado, };
     localStorage.setItem("user", JSON.stringify(userActualizado));
     router.push(`/productos/${producto.idProducto}`);
   };

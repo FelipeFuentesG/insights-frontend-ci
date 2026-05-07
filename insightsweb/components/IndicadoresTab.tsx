@@ -26,10 +26,12 @@ interface MarcaResumen    { idMarca: number;   nombre: string; idRetailer: numbe
 interface MainMetrics     { ingresosTotal: number; totalTransacciones: number; presenciaCarritos: number; }
 interface MetricasPeriodo { periodo: string; ingresosTotal: number; totalTransacciones: number; presenciaCarritos: number; }
 interface TopProducto     { idProducto: number; nombre: string; ingresosTotal: number; unidadesVendidas: number; }
+interface VentasPorCanal { canal: string; ingresosTotal: number; unidadesVendidas: number; }
 
 type AgruparPor    = "dia" | "semana" | "mes" | "año";
 type MetricaActiva = "ingresosTotal" | "totalTransacciones" | "presenciaCarritos";
 type TipoGrafico   = "line" | "bar";
+type MetricaCanal = "ingresosTotal" | "unidadesVendidas";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -117,6 +119,8 @@ export default function IndicadoresTab({ user }: { user: StoredUser | null }) {
   const [topProductos, setTopProductos] = useState<TopProducto[]>([]);
   const [loading, setLoading]   = useState(false);
   const [error, setError]       = useState<string | null>(null);
+  const [ventasCanal, setVentasCanal]   = useState<VentasPorCanal[]>([]);
+  const [metricaCanal, setMetricaCanal] = useState<MetricaCanal>("ingresosTotal");
 
   const rol = user?.rol;
 
@@ -175,31 +179,36 @@ export default function IndicadoresTab({ user }: { user: StoredUser | null }) {
       let urlMetricas: string;
       let urlSerie: string;
       let urlTop: string;
+      let urlCanal: string;
 
       if (effectiveIdMarca) {
         urlMetricas = `/db/marcas/${effectiveIdMarca}/metricas-principales${qs}`;
         urlSerie    = `/db/marcas/${effectiveIdMarca}/metricas-principales/serie${qsSerie}`;
         urlTop      = `/db/marcas/${effectiveIdMarca}/top-productos${qsTop}`;
+        urlCanal = `/db/marcas/${effectiveIdMarca}/ventas-por-canal${qs}`;
       } else {
         urlMetricas = `/db/retailers/${effectiveIdRetailer}/metricas-principales${qs}`;
         urlSerie    = `/db/retailers/${effectiveIdRetailer}/metricas-principales/serie${qsSerie}`;
         urlTop      = `/db/retailers/${effectiveIdRetailer}/top-productos${qsTop}`;
+        urlCanal = `/db/retailers/${effectiveIdRetailer}/ventas-por-canal${qs}`;
       }
 
-      const [rM, rS, rT] = await Promise.all([
+      const [rM, rS, rT, rC] = await Promise.all([
         apiFetch(urlMetricas),
         apiFetch(urlSerie),
         apiFetch(urlTop),
+        apiFetch(urlCanal),
       ]);
 
-      if (!rM.ok || !rS.ok || !rT.ok) throw new Error("Error al cargar los datos.");
+      if (!rM.ok || !rS.ok || !rT.ok || !rC.ok) throw new Error("Error al cargar los datos.");
 
-      const [dataM, dataS, dataT]: [MainMetrics, MetricasPeriodo[], TopProducto[]] =
-        await Promise.all([rM.json(), rS.json(), rT.json()]);
+      const [dataM, dataS, dataT, dataC]: [MainMetrics, MetricasPeriodo[], TopProducto[], VentasPorCanal[]] =
+        await Promise.all([rM.json(), rS.json(), rT.json(), rC.json(), ]);
 
       setMetricas(dataM);
       setSerie(dataS);
       setTopProductos(dataT);
+      setVentasCanal(dataC);
     } catch (e) {
       setError((e as Error).message ?? "Error desconocido.");
     } finally {
@@ -241,6 +250,14 @@ export default function IndicadoresTab({ user }: { user: StoredUser | null }) {
       : retailerNombre
       ? retailerNombre
       : "";
+
+  const canalOpts: { value: MetricaCanal; label: string }[] = [
+    { value: "ingresosTotal",    label: "Ingresos" },
+    { value: "unidadesVendidas", label: "Unidades" },
+  ];
+  const canalFormatter = (v: number) =>
+    metricaCanal === "ingresosTotal" ? formatCLP(v) : formatNum(v);
+  const canalLabel = canalOpts.find(o => o.value === metricaCanal)?.label ?? "";
 
   const maxTopIngresos = topProductos[0]?.ingresosTotal ?? 1;
 
@@ -337,57 +354,40 @@ export default function IndicadoresTab({ user }: { user: StoredUser | null }) {
       </section>
 
       {/* ── Gráfico de evolución ──────────────────────────────────────────── */}
+      {/* borrado */}
+
+      {/* ── Gráfico ventas por canal ─────────────────────────────────────── */}
       <section className="ind-card">
         <div className="ind-card-header">
           <div className="ind-card-header-left">
-            <h2 className="ind-card-title">Evolución temporal</h2>
-            <SegBtn<MetricaActiva>
-              options={metricaOpts}
-              value={metricaActiva}
-              onChange={setMetricaActiva}
+            <h2 className="ind-card-title">Ventas por canal</h2>
+            <SegBtn<MetricaCanal>
+              options={canalOpts}
+              value={metricaCanal}
+              onChange={setMetricaCanal}
             />
           </div>
-          <SegBtn<TipoGrafico>
-            options={[{ value: "line", label: "Línea" }, { value: "bar", label: "Barras" }]}
-            value={tipoGrafico}
-            onChange={setTipoGrafico}
-            accent
-          />
+          <span className="ind-badge">{ventasCanal.length} canales</span>
         </div>
 
         <div className="ind-chart-area">
           {loading ? (
             <div className="ind-skeleton" />
-          ) : serie.length === 0 ? (
-            <div className="ind-empty"><p className="ind-empty-text">No hay datos para el período seleccionado.</p></div>
+          ) : ventasCanal.length === 0 ? (
+            <div className="ind-empty"><p className="ind-empty-text">No hay datos de canales para el período.</p></div>
           ) : (
             <ResponsiveContainer width="100%" height={300}>
-              {tipoGrafico === "line" ? (
-                <LineChart data={serie} margin={{ top: 4, right: 40, left: 10, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                  <XAxis dataKey="periodo" tick={{ fontSize: 12, fill: "#6b7280" }} axisLine={false} tickLine={false} />
-                  <YAxis tickFormatter={metricaFormatter} tick={{ fontSize: 11, fill: "#6b7280" }} axisLine={false} tickLine={false} width={90} />
-                  <Tooltip
-                    formatter={(v) => [metricaFormatter(Number(v ?? 0)), metricaLabel]}
-                    contentStyle={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: "8px", fontSize: "13px", boxShadow: "0 4px 12px rgba(0,0,0,0.08)" }}
-                  />
-                  <Legend formatter={() => metricaLabel} iconType="circle" wrapperStyle={{ fontSize: "12px", paddingTop: "12px" }} />
-                  <Line type="monotone" dataKey={metricaActiva} stroke="#6366f1" strokeWidth={2.5}
-                    dot={{ r: 4, fill: "#6366f1", strokeWidth: 0 }} activeDot={{ r: 6, fill: "#4f46e5" }} name={metricaLabel} />
-                </LineChart>
-              ) : (
-                <BarChart data={serie} margin={{ top: 4, right: 40, left: 10, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                  <XAxis dataKey="periodo" tick={{ fontSize: 12, fill: "#6b7280" }} axisLine={false} tickLine={false} />
-                  <YAxis tickFormatter={metricaFormatter} tick={{ fontSize: 11, fill: "#6b7280" }} axisLine={false} tickLine={false} width={90} />
-                  <Tooltip
-                    formatter={(v) => [metricaFormatter(Number(v ?? 0)), metricaLabel]}
-                    contentStyle={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: "8px", fontSize: "13px", boxShadow: "0 4px 12px rgba(0,0,0,0.08)" }}
-                  />
-                  <Legend formatter={() => metricaLabel} wrapperStyle={{ fontSize: "12px", paddingTop: "12px" }} />
-                  <Bar dataKey={metricaActiva} fill="#6366f1" radius={[4, 4, 0, 0]} name={metricaLabel} />
-                </BarChart>
-              )}
+              <BarChart data={ventasCanal} margin={{ top: 4, right: 40, left: 10, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                <XAxis dataKey="canal" tick={{ fontSize: 12, fill: "#6b7280" }} axisLine={false} tickLine={false} />
+                <YAxis tickFormatter={canalFormatter} tick={{ fontSize: 11, fill: "#6b7280" }} axisLine={false} tickLine={false} width={90} />
+                <Tooltip
+                  formatter={(v) => [canalFormatter(Number(v ?? 0)), canalLabel]}
+                  contentStyle={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: "8px", fontSize: "13px", boxShadow: "0 4px 12px rgba(0,0,0,0.08)" }}
+                />
+                <Legend formatter={() => canalLabel} wrapperStyle={{ fontSize: "12px", paddingTop: "12px" }} />
+                <Bar dataKey={metricaCanal} fill="#6366f1" radius={[4, 4, 0, 0]} name={canalLabel} />
+              </BarChart>
             </ResponsiveContainer>
           )}
         </div>
