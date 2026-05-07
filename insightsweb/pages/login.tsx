@@ -94,13 +94,6 @@ export default function Login() {
               {loading ? "Iniciando sesión..." : "Iniciar sesión"}
             </button>
           </form>
-
-          <p className="layout-login-register">
-            ¿No eres usuario?{" "}
-            <Link href="/register" className="layout-login-register-link">
-              Regístrate
-            </Link>
-          </p>
         </div>
       </div>
 

@@ -26,9 +26,6 @@ export default function Landing() {
                 Convierte cada visita en ingresos. Automatiza, monetiza y escala
                 tu negocio de Retail Media con Insights de AndesML.
               </p>
-              <Link href="/register" className="layout-landing-cta">
-                Comenzar hoy
-              </Link>
             </div>
           </div>
         </section>
