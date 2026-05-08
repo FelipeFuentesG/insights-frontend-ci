@@ -3,28 +3,30 @@ import { useRouter } from "next/router";
 
 type NavItem = {
   label: string;
-  imgSrc: string;
+  imgSrc?: string;
   href?: string;
   active?: boolean;
   chevron?: boolean;
-  children?: { label: string; href: string }[];
+  children?: { label: string; href?: string }[];
 };
 
 const NAV_ITEMS: NavItem[] = [
   { label: "Inicio", imgSrc: "/home.svg", href: "/home" },
-  { label: "Campañas", imgSrc: "/campaign.svg" },
   {
     label: "Tableros",
     imgSrc: "/table.svg",
     chevron: true,
     children: [
       { label: "Dashboard de Productos", href: "/productos" },
-      { label: "Dashboard Ventas Totales", href: "/ventas" },
+      { label: "Dashboard de Ventas Totales", href: "/ventas" },
+      { label: "Dashboard de Clientes"},
+      { label: "Dashboard Global de Retailer"}, //Luego filtrar para rol = "admin_retailer"
     ],
   },
-  { label: "Insights", imgSrc: "/bulb.svg", href: "/home" },
-  { label: "Pagos y Facturas", imgSrc: "/money.svg", chevron: true },
-  { label: "Gestionar Socio", imgSrc: "/bag.svg" },
+  { label: "Insights", imgSrc: "/bulb.svg" },
+  { label: "Análisis de Catálogo", imgSrc: "/bag.svg" },
+  { label: "Gestión de la Plataforma", imgSrc: "/campaign.svg" }, //Luego filtrar para rol = "admin_global_andesml"
+  { label: "Estado de Carga de Datos"}, //Tal vez después agregar como tarjeta con un valor más que como botón a otra sección
 ];
 
 export default function Sidebar() {
@@ -64,13 +66,15 @@ export default function Sidebar() {
                   }
                 }}
               >
-                <img
-                  src={imgSrc}
-                  alt=""
-                  width="16"
-                  height="16"
-                  className="home-sidebar-nav-img"
-                />
+                {imgSrc && (
+                  <img
+                    src={imgSrc}
+                    alt=""
+                    width="16"
+                    height="16"
+                    className="home-sidebar-nav-img"
+                  />
+                )}
                 {label}
                 {chevron && (
                   <img
@@ -92,9 +96,9 @@ export default function Sidebar() {
                 <div className="home-sidebar-submenu">
                   {children.map((child) => (
                     <button
-                      key={child.href}
+                      key={child.label}
                       className={`home-sidebar-subitem${isActive(child.href) ? " active" : ""}`}
-                      onClick={() => router.push(child.href)}
+                      onClick={() => { if (child.href) router.push(child.href); }}
                     >
                       <span className="home-sidebar-subitem-dot" />
                       {child.label}
