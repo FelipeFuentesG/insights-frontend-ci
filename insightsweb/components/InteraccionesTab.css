@@ -1,0 +1,199 @@
+/* ── Layout ─────────────────────────────────────────────────────────── */
+.ind-root {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* ── Filtros ─────────────────────────────────────────────────────────── */
+.ind-filters-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.75rem;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+}
+
+.ind-filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ind-filter-label {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.ind-filter-input {
+  padding: 0.4rem 0.65rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 7px;
+  font-size: 0.85rem;
+  color: #111827;
+  background: #fafafa;
+  outline: none;
+  transition: border-color 0.15s;
+  height: 34px;
+}
+
+.ind-filter-input:focus {
+  border-color: #6366f1;
+  background: #ffffff;
+}
+
+.ind-apply-btn {
+  padding: 0 1.1rem;
+  height: 34px;
+  background: #6366f1;
+  color: #ffffff;
+  border: none;
+  border-radius: 7px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+  align-self: flex-end;
+}
+
+.ind-apply-btn:hover:not(:disabled) { background: #4f46e5; }
+.ind-apply-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+
+/* ── Contexto ────────────────────────────────────────────────────────── */
+.ind-context-label {
+  font-size: 0.8125rem;
+  color: #6b7280;
+  margin: 0;
+}
+
+.ind-error-banner {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #dc2626;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+}
+
+/* ── KPIs ────────────────────────────────────────────────────────────── */
+.ind-kpi-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+}
+
+@media (max-width: 900px) { .ind-kpi-row { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 640px) { .ind-kpi-row { grid-template-columns: 1fr; } }
+
+.ind-kpi-card {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 1.1rem 1.25rem;
+}
+
+.ind-kpi-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin: 0 0 0.35rem;
+}
+
+.ind-kpi-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #111827;
+  margin: 0 0 0.25rem;
+  line-height: 1.2;
+}
+
+/* ── Skeleton loading ────────────────────────────────────────────────── */
+.ind-skeleton {
+  height: 100%;
+  background: linear-gradient(90deg, #f3f4f6 25%, #e9eaec 50%, #f3f4f6 75%);
+  background-size: 200% 100%;
+  animation: ind-shimmer 1.4s infinite;
+  border-radius: 8px;
+}
+
+@keyframes ind-shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ── Cards ───────────────────────────────────────────────────────────── */
+.ind-card {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 1.25rem 1.5rem;
+}
+
+.ind-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.1rem;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.ind-card-title {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+}
+
+.ind-badge {
+  font-size: 0.75rem;
+  color: #6b7280;
+  background: #f3f4f6;
+  border-radius: 20px;
+  padding: 2px 10px;
+}
+
+/* ── Tabla ───────────────────────────────────────────────────────────── */
+.ind-table-wrapper {
+  overflow-x: auto;
+}
+
+.ind-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8375rem;
+}
+
+.ind-th {
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-bottom: 2px solid #f3f4f6;
+  white-space: nowrap;
+}
+
+.ind-th--right { text-align: right; }
+
+.ind-tr { border-bottom: 1px solid #f9fafb; }
+.ind-tr--alt { background: #fafafa; }
+
+.ind-td {
+  padding: 0.6rem 0.75rem;
+  color: #374151;
+  white-space: nowrap;
+}
+
+.ind-td--right { text-align: right; }
+.ind-td--mono  { font-family: ui-monospace, monospace; font-size: 0.8rem; color: #6b7280; }
