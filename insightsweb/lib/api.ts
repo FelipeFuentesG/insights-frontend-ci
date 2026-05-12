@@ -58,3 +58,55 @@ export async function fetchMetricasInteraccionSerie(
   if (!res.ok) throw new Error("Error al cargar la serie de interacciones.");
   return res.json();
 }
+
+export interface InteraccionPorDia {
+  diaSemana: number;
+  nombreDia: string;
+  totalInteracciones: number;
+}
+
+export interface InteraccionPorHora {
+  hora: number;
+  totalInteracciones: number;
+}
+
+export interface TendenciaInteracciones {
+  porDiaSemana: InteraccionPorDia[];
+  porHoraDia: InteraccionPorHora[];
+}
+
+export async function fetchTendenciaInteracciones(
+  tipo: "marca" | "retailer",
+  id: string,
+  desde: string,
+  hasta: string
+): Promise<TendenciaInteracciones> {
+  const path =
+    tipo === "marca"
+      ? `/db/marcas/${id}/interacciones/tendencia`
+      : `/db/retailers/${id}/interacciones/tendencia`;
+  const res = await apiFetch(`${path}?desde=${desde}&hasta=${hasta}`);
+  if (!res.ok) throw new Error("Error al cargar la tendencia de interacciones.");
+  return res.json();
+}
+
+export interface ClientesPeriodo {
+  periodo: string;
+  totalClientes: number;
+}
+
+export async function fetchClientesSerie(
+  tipo: "marca" | "retailer",
+  id: string,
+  desde: string,
+  hasta: string,
+  agruparPor: string
+): Promise<ClientesPeriodo[]> {
+  const path =
+    tipo === "marca"
+      ? `/db/marcas/${id}/clientes/serie`
+      : `/db/retailers/${id}/clientes/serie`;
+  const res = await apiFetch(`${path}?desde=${desde}&hasta=${hasta}&agruparPor=${agruparPor}`);
+  if (!res.ok) throw new Error("Error al cargar la serie de clientes.");
+  return res.json();
+}

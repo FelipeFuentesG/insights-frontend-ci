@@ -1,10 +1,15 @@
 import { useState, useEffect, useCallback } from "react";
 import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+} from "recharts";
+import {
   apiFetch,
   fetchMetricasInteraccion,
   fetchMetricasInteraccionSerie,
+  fetchTendenciaInteracciones,
   MetricasInteraccion,
   MetricasInteraccionPeriodo,
+  TendenciaInteracciones,
 } from "../lib/api";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -83,6 +88,9 @@ export default function InteraccionesTab({ user }: { user: StoredUser | null }) 
   const [loading, setLoading] = useState(false);
   const [error, setError]   = useState<string | null>(null);
 
+  const [tendencia, setTendencia]             = useState<TendenciaInteracciones | null>(null);
+  const [loadingTendencia, setLoadingTendencia] = useState(false);
+
   const rol = user?.rol;
 
   // ── Carga inicial de retailers (solo admin_global) ─────────────────────────
@@ -156,6 +164,20 @@ export default function InteraccionesTab({ user }: { user: StoredUser | null }) 
 
   useEffect(() => { fetchDatos(); }, [fetchDatos]);
 
+  // ── Fetch de tendencia temporal ───────────────────────────────────────────
+  const fetchTendencia = useCallback(async () => {
+    if (!effectiveIdRetailer && !effectiveIdMarca) return;
+    const tipo: "marca" | "retailer" = effectiveIdMarca ? "marca" : "retailer";
+    const id = effectiveIdMarca ?? effectiveIdRetailer!;
+    setLoadingTendencia(true);
+    fetchTendenciaInteracciones(tipo, id, desde, hasta)
+      .then(setTendencia)
+      .catch(() => setTendencia(null))
+      .finally(() => setLoadingTendencia(false));
+  }, [effectiveIdMarca, effectiveIdRetailer, desde, hasta]);
+
+  useEffect(() => { fetchTendencia(); }, [fetchTendencia]);
+
   // ── Etiqueta de contexto ──────────────────────────────────────────────────
   const retailerNombre =
     rol === "admin_global_andesml"
@@ -172,6 +194,21 @@ export default function InteraccionesTab({ user }: { user: StoredUser | null }) 
     marcaNombreCtx                   ? marcaNombreCtx :
     retailerNombre                   ? retailerNombre :
     "";
+
+  // ── Datos para gráficos de tendencia ─────────────────────────────────────
+  // BigQuery: 1=Dom, 2=Lun … 7=Sáb → mostramos Lun-Dom
+  const DIAS_ORDEN   = [2, 3, 4, 5, 6, 7, 1];
+  const NOMBRES_DIAS = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
+
+  const dataDias = DIAS_ORDEN.map((numDia, i) => {
+    const encontrado = tendencia?.porDiaSemana.find(d => d.diaSemana === numDia);
+    return { nombre: NOMBRES_DIAS[i], total: encontrado?.totalInteracciones ?? 0 };
+  });
+
+  const dataHoras = Array.from({ length: 24 }, (_, h) => {
+    const encontrado = tendencia?.porHoraDia.find(d => d.hora === h);
+    return { hora: `${h}:00`, total: encontrado?.totalInteracciones ?? 0 };
+  });
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (
@@ -290,6 +327,56 @@ export default function InteraccionesTab({ user }: { user: StoredUser | null }) 
           </div>
         </section>
       )}
+
+      {/* ── Tendencia por día de la semana ────────────────────────────────── */}
+      <section className="ind-card">
+        <div className="ind-card-header">
+          <h2 className="ind-card-title">Tendencia por día de la semana</h2>
+        </div>
+        <div className="ind-chart-area">
+          {loadingTendencia ? (
+            <div className="ind-skeleton" />
+          ) : (
+            <ResponsiveContainer width="100%" height={260}>
+              <BarChart data={dataDias} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                <XAxis dataKey="nombre" tick={{ fontSize: 12, fill: "#6b7280" }} axisLine={false} tickLine={false} />
+                <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: "#6b7280" }} axisLine={false} tickLine={false} />
+                <Tooltip
+                  formatter={(val) => [Number(val).toLocaleString("es-CL"), "Interacciones"]}
+                  contentStyle={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: "8px", fontSize: "13px", boxShadow: "0 4px 12px rgba(0,0,0,0.08)" }}
+                />
+                <Bar dataKey="total" fill="#4f46e5" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          )}
+        </div>
+      </section>
+
+      {/* ── Tendencia por hora del día ─────────────────────────────────────── */}
+      <section className="ind-card">
+        <div className="ind-card-header">
+          <h2 className="ind-card-title">Tendencia por hora del día</h2>
+        </div>
+        <div className="ind-chart-area">
+          {loadingTendencia ? (
+            <div className="ind-skeleton" />
+          ) : (
+            <ResponsiveContainer width="100%" height={260}>
+              <BarChart data={dataHoras} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                <XAxis dataKey="hora" interval={2} tick={{ fontSize: 11, fill: "#6b7280" }} axisLine={false} tickLine={false} />
+                <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: "#6b7280" }} axisLine={false} tickLine={false} />
+                <Tooltip
+                  formatter={(val) => [Number(val).toLocaleString("es-CL"), "Interacciones"]}
+                  contentStyle={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: "8px", fontSize: "13px", boxShadow: "0 4px 12px rgba(0,0,0,0.08)" }}
+                />
+                <Bar dataKey="total" fill="#0ea5e9" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          )}
+        </div>
+      </section>
 
     </div>
   );
