@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/router";
 import Sidebar from "../../components/Sidebar";
 import { fetchClientesSerie, ClientesPeriodo } from "../../lib/api";
@@ -129,6 +129,21 @@ export default function ClientesPage() {
   const [serie, setSerie] = useState<ClientesPeriodo[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Para que se use siempre todo el ancho posible en el gráfico
+  const chartContainerRef = useRef<HTMLDivElement>(null);
+  const [chartContainerWidth, setChartContainerWidth] = useState(600);
+
+  // Para que se use siempre todo el ancho posible en el gráfico
+  useEffect(() => {
+    if (!chartContainerRef.current) return;
+    setChartContainerWidth(chartContainerRef.current.offsetWidth);
+    const observer = new ResizeObserver((entries) => {
+      setChartContainerWidth(entries[0].contentRect.width);
+    });
+    observer.observe(chartContainerRef.current);
+    return () => observer.disconnect();
+  }, [marcaSeleccionada]);
 
   // ── Auth guard ────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -429,7 +444,7 @@ export default function ClientesPage() {
                   />
                 </div>
 
-                <div className="pd-chart-area">
+                <div className="pd-chart-area" ref={chartContainerRef}>
                   {loading ? (
                     <div className="pd-skeleton" />
                   ) : serie.length === 0 ? (
@@ -437,9 +452,15 @@ export default function ClientesPage() {
                       <p className="pd-empty-text">No hay datos para el período seleccionado.</p>
                     </div>
                   ) : (
-                    <ResponsiveContainer width="100%" height={300}>
+                    <div style={{ overflowX: "auto", width: "100%" }}>
+                    <div style={{ minWidth: Math.max(chartContainerWidth, serie.length * 80) }}>
                       {tipoGrafico === "line" ? (
-                        <LineChart data={serie} margin={{ top: 4, right: 40, left: 10, bottom: 0 }}>
+                        <LineChart 
+                          width={Math.max(chartContainerWidth, serie.length * 80)}
+                          height={300}
+                          data={serie}
+                          margin={{ top: 4, right: 40, left: 10, bottom: 0 }}
+                        >
                           <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                           <XAxis dataKey="periodo" tick={{ fontSize: 12, fill: "#6b7280" }} axisLine={false} tickLine={false} />
                           <YAxis tickFormatter={formatNum} tick={{ fontSize: 11, fill: "#6b7280" }} axisLine={false} tickLine={false} width={72} />
@@ -451,7 +472,12 @@ export default function ClientesPage() {
                           <Line type="monotone" dataKey="totalClientes" stroke="#10b981" strokeWidth={2.5} dot={{ r: 4, fill: "#10b981", strokeWidth: 0 }} activeDot={{ r: 6, fill: "#059669" }} name="Clientes únicos" />
                         </LineChart>
                       ) : (
-                        <BarChart data={serie} margin={{ top: 4, right: 40, left: 10, bottom: 0 }}>
+                        <BarChart 
+                          width={Math.max(chartContainerWidth, serie.length * 80)}
+                          height={300}
+                          data={serie}
+                          margin={{ top: 4, right: 40, left: 10, bottom: 0 }}
+                        >
                           <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                           <XAxis dataKey="periodo" tick={{ fontSize: 12, fill: "#6b7280" }} axisLine={false} tickLine={false} />
                           <YAxis tickFormatter={formatNum} tick={{ fontSize: 11, fill: "#6b7280" }} axisLine={false} tickLine={false} width={72} />
@@ -463,7 +489,8 @@ export default function ClientesPage() {
                           <Bar dataKey="totalClientes" fill="#10b981" radius={[4, 4, 0, 0]} name="Clientes únicos" />
                         </BarChart>
                       )}
-                    </ResponsiveContainer>
+                    </div>
+                    </div>
                   )}
                 </div>
               </section>

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/router";
 import Sidebar from "../../components/Sidebar";
 import { apiFetch } from "../../lib/api";
@@ -159,6 +159,21 @@ export default function VentasTotalesPage() {
   const [serie, setSerie] = useState<MetricasPeriodo[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Para que se use siempre todo el ancho posible en el gráfico
+  const chartContainerRef = useRef<HTMLDivElement>(null);
+  const [chartContainerWidth, setChartContainerWidth] = useState(600);
+
+  // Para que se use siempre todo el ancho posible en el gráfico
+  useEffect(() => {
+    if (!chartContainerRef.current) return;
+    setChartContainerWidth(chartContainerRef.current.offsetWidth);
+    const observer = new ResizeObserver((entries) => {
+      setChartContainerWidth(entries[0].contentRect.width);
+    });
+    observer.observe(chartContainerRef.current);
+    return () => observer.disconnect();
+  }, [marcaSeleccionada]);
 
   // ── Auth guard ────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -482,7 +497,7 @@ export default function VentasTotalesPage() {
                   />
                 </div>
 
-                <div className="pd-chart-area">
+                <div className="pd-chart-area" ref={chartContainerRef}>
                   {loading ? (
                     <div className="pd-skeleton" />
                   ) : serie.length === 0 ? (
@@ -490,9 +505,15 @@ export default function VentasTotalesPage() {
                       <p className="pd-empty-text">No hay datos para el período seleccionado.</p>
                     </div>
                   ) : (
-                    <ResponsiveContainer width="100%" height={300}>
+                    <div style={{ overflowX: "auto", width: "100%" }}>
+                    <div style={{ minWidth: Math.max(chartContainerWidth, serie.length * 80) }}>
                       {tipoGrafico === "line" ? (
-                        <LineChart data={serie} margin={{ top: 4, right: 40, left: 10, bottom: 0 }}>
+                        <LineChart 
+                          width={Math.max(chartContainerWidth, serie.length * 80)}
+                          height={300}
+                          data={serie}
+                          margin={{ top: 4, right: 40, left: 10, bottom: 0 }}
+                        >
                           <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                           <XAxis dataKey="periodo" tick={{ fontSize: 12, fill: "#6b7280" }} axisLine={false} tickLine={false} />
                           <YAxis tickFormatter={metricaFormatter} tick={{ fontSize: 11, fill: "#6b7280" }} axisLine={false} tickLine={false} width={88} />
@@ -504,7 +525,12 @@ export default function VentasTotalesPage() {
                           <Line type="monotone" dataKey={metricaActiva} stroke="#6366f1" strokeWidth={2.5} dot={{ r: 4, fill: "#6366f1", strokeWidth: 0 }} activeDot={{ r: 6, fill: "#4f46e5" }} name={metricaLabel} />
                         </LineChart>
                       ) : (
-                        <BarChart data={serie} margin={{ top: 4, right: 40, left: 10, bottom: 0 }}>
+                        <BarChart 
+                          width={Math.max(chartContainerWidth, serie.length * 80)}
+                          height={300}
+                          data={serie}
+                          margin={{ top: 4, right: 40, left: 10, bottom: 0 }}
+                        >
                           <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                           <XAxis dataKey="periodo" tick={{ fontSize: 12, fill: "#6b7280" }} axisLine={false} tickLine={false} />
                           <YAxis tickFormatter={metricaFormatter} tick={{ fontSize: 11, fill: "#6b7280" }} axisLine={false} tickLine={false} width={88} />
@@ -516,7 +542,8 @@ export default function VentasTotalesPage() {
                           <Bar dataKey={metricaActiva} fill="#6366f1" radius={[4, 4, 0, 0]} name={metricaLabel} />
                         </BarChart>
                       )}
-                    </ResponsiveContainer>
+                    </div>
+                    </div>
                   )}
                 </div>
               </section>
