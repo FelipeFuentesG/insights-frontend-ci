@@ -304,7 +304,7 @@ export default function InteraccionesTab({ user }: { user: StoredUser | null }) 
               <thead>
                 <tr>
                   <th className="ind-th">Período</th>
-                  <th className="ind-th ind-th--right">Clics</th>
+                  <th className="ind-th ind-th--right">Clicks</th>
                   <th className="ind-th ind-th--right">Visitas</th>
                   <th className="ind-th ind-th--right">Tiempo prom. viz.</th>
                 </tr>

@@ -208,6 +208,7 @@ export default function ProductosPage() {
                   className="home-dropdown-item"
                   onClick={() => {
                     localStorage.removeItem("user");
+                    localStorage.removeItem("token");
                     router.push("/login");
                   }}
                 >

@@ -299,6 +299,8 @@
 /* ── Tabla ───────────────────────────────────────────────────────────── */
 .ind-table-wrapper {
   overflow-x: auto;
+  max-height: 410px;
+  overflow-y: auto;
 }
 
 .ind-table {

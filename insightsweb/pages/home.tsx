@@ -46,7 +46,7 @@ export default function Home() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const handleLogout = () => { localStorage.removeItem("user"); router.push("/login"); };
+  const handleLogout = () => { localStorage.removeItem("user");  localStorage.removeItem("token"); router.push("/login"); };
 
   const nombre = user?.nombre ?? "Usuario";
   const initials = nombre.split(" ").slice(0, 2).map(w => w[0]).join("").toUpperCase();
