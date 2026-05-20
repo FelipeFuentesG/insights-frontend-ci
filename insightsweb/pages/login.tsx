@@ -29,6 +29,7 @@ export default function Login() {
 
       const user = await res.json();
       localStorage.setItem("user", JSON.stringify(user));
+      localStorage.setItem("token", user.token);  
       router.push("/home");
     } catch {
       setError("No se pudo conectar con el servidor.");

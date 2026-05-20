@@ -5,9 +5,10 @@ import "../styles/login.css";
 import "../styles/home.css";
 import "../styles/idProducto.css";
 import "../styles/productos.css";  
+import "../styles/rendimiento.css";
 import "../components/Sidebar.css";
 import "../components/IndicadoresTab.css";
-import "../styles/rendimiento.css";
+import "../components/InteraccionesTab.css";
 
 const geistSans = Geist({ subsets: ["latin"] });
 

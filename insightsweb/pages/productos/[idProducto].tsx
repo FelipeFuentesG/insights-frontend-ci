@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/router";
 import Sidebar from "../../components/Sidebar";
 import { apiFetch } from "../../lib/api";
@@ -145,6 +145,21 @@ export default function ProductoDashboard() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Para que se use siempre todo el ancho posible en el gráfico
+  const chartContainerRef = useRef<HTMLDivElement>(null);
+  const [chartContainerWidth, setChartContainerWidth] = useState(600);
+
+  // Para que se use siempre todo el ancho posible en el gráfico
+  useEffect(() => {
+    if (!chartContainerRef.current) return;
+    setChartContainerWidth(chartContainerRef.current.offsetWidth);
+    const observer = new ResizeObserver((entries) => {
+      setChartContainerWidth(entries[0].contentRect.width);
+    });
+    observer.observe(chartContainerRef.current);
+    return () => observer.disconnect();
+  }, [idProducto]);
+
   // Auth guard + user context
   useEffect(() => {
     const stored = localStorage.getItem("user");
@@ -275,6 +290,7 @@ export default function ProductoDashboard() {
                   className="home-dropdown-item"
                   onClick={() => {
                     localStorage.removeItem("user");
+                    localStorage.removeItem("token");
                     router.push("/login");
                   }}
                 >
@@ -380,7 +396,7 @@ export default function ProductoDashboard() {
               />
             </div>
 
-            <div className="pd-chart-area">
+            <div className="pd-chart-area" ref={chartContainerRef}>
               {loading ? (
                 <div className="pd-skeleton" />
               ) : serie.length === 0 ? (
@@ -390,9 +406,12 @@ export default function ProductoDashboard() {
                   </p>
                 </div>
               ) : (
-                <ResponsiveContainer width="100%" height={300}>
+                <div style={{ overflowX: "auto", width: "100%" }}>
+                <div style={{ minWidth: Math.max(chartContainerWidth, serie.length * 80) }}>
                   {tipoGrafico === "line" ? (
                     <LineChart
+                      width={Math.max(chartContainerWidth, serie.length * 80)}
+                      height={300}
                       data={serie}
                       margin={{ top: 4, right: 40, left: 10, bottom: 0 }}
                     >
@@ -437,6 +456,8 @@ export default function ProductoDashboard() {
                     </LineChart>
                   ) : (
                     <BarChart
+                      width={Math.max(chartContainerWidth, serie.length * 80)}
+                      height={300}
                       data={serie}
                       margin={{ top: 4, right: 40, left: 10, bottom: 0 }}
                     >
@@ -476,7 +497,8 @@ export default function ProductoDashboard() {
                       />
                     </BarChart>
                   )}
-                </ResponsiveContainer>
+                </div>
+                </div>
               )}
             </div>
           </section>
