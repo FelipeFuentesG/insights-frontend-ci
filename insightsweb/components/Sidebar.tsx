@@ -23,7 +23,7 @@ const NAV_ITEMS: NavItem[] = [
       { label: "Dashboard Global de Retailer"}, //Luego filtrar para rol = "admin_retailer"
     ],
   },
-  { label: "Insights", imgSrc: "/bulb.svg" },
+  { label: "Insights", imgSrc: "/bulb.svg", href: "/insights" },
   { label: "Análisis de Catálogo", imgSrc: "/bag.svg" },
   { label: "Gestión de la Plataforma", imgSrc: "/campaign.svg" }, //Luego filtrar para rol = "admin_global_andesml"
   { label: "Estado de Carga de Datos"}, //Tal vez después agregar como tarjeta con un valor más que como botón a otra sección

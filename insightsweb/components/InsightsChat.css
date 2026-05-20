@@ -1,0 +1,214 @@
+/* ── Floating action button ─────────────────────────────────────────────── */
+
+.ai-fab {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: #6366f1;
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 16px rgba(99, 102, 241, 0.4);
+  z-index: 1000;
+  transition: background 0.2s, transform 0.15s;
+}
+
+.ai-fab:hover {
+  background: #4f46e5;
+  transform: scale(1.07);
+}
+
+/* ── Chat panel ─────────────────────────────────────────────────────────── */
+
+.ai-panel {
+  position: fixed;
+  bottom: 90px;
+  right: 24px;
+  width: 380px;
+  height: 520px;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+  display: flex;
+  flex-direction: column;
+  z-index: 999;
+  overflow: hidden;
+  animation: ai-panel-in 0.18s ease;
+}
+
+@keyframes ai-panel-in {
+  from { opacity: 0; transform: translateY(14px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.ai-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  background: #6366f1;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.ai-panel-header h2 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.ai-close-btn {
+  background: none;
+  border: none;
+  color: #fff;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  opacity: 0.8;
+  transition: opacity 0.15s, background 0.15s;
+}
+
+.ai-close-btn:hover {
+  opacity: 1;
+  background: rgba(255, 255, 255, 0.15);
+}
+
+/* ── Message list ───────────────────────────────────────────────────────── */
+
+.ai-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ai-msg {
+  max-width: 82%;
+  padding: 10px 14px;
+  border-radius: 12px;
+  font-size: 14px;
+  line-height: 1.55;
+  word-break: break-word;
+  white-space: pre-wrap;
+  margin: 0;
+}
+
+.ai-msg--user {
+  align-self: flex-end;
+  background: #6366f1;
+  color: #fff;
+  border-bottom-right-radius: 3px;
+}
+
+.ai-msg--ai {
+  align-self: flex-start;
+  background: #f3f4f6;
+  color: #111827;
+  border-bottom-left-radius: 3px;
+}
+
+.ai-msg--error {
+  align-self: flex-start;
+  background: #fee2e2;
+  color: #991b1b;
+  border-bottom-left-radius: 3px;
+}
+
+.ai-msg--thinking {
+  align-self: flex-start;
+  background: #f3f4f6;
+  color: #9ca3af;
+  font-style: italic;
+  border-bottom-left-radius: 3px;
+}
+
+/* ── Input bar ──────────────────────────────────────────────────────────── */
+
+.ai-input-bar {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  padding: 12px 14px;
+  border-top: 1px solid #e5e7eb;
+  flex-shrink: 0;
+}
+
+.ai-input {
+  flex: 1;
+  resize: none;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 9px 12px;
+  font-size: 14px;
+  font-family: inherit;
+  outline: none;
+  max-height: 96px;
+  line-height: 1.45;
+  transition: border-color 0.15s;
+  background: #fff;
+  color: #111827;
+}
+
+.ai-input:focus {
+  border-color: #6366f1;
+}
+
+.ai-input:disabled {
+  background: #f9fafb;
+  color: #9ca3af;
+  cursor: not-allowed;
+}
+
+.ai-send-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 8px;
+  background: #6366f1;
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.15s, opacity 0.15s;
+}
+
+.ai-send-btn:hover:not(:disabled) {
+  background: #4f46e5;
+}
+
+.ai-send-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* ── Mobile ─────────────────────────────────────────────────────────────── */
+
+@media (max-width: 480px) {
+  .ai-panel {
+    width: calc(100vw - 16px);
+    right: 8px;
+    left: 8px;
+    bottom: 80px;
+    height: 65vh;
+    border-radius: 12px;
+  }
+
+  .ai-fab {
+    right: 16px;
+    bottom: 16px;
+  }
+}
