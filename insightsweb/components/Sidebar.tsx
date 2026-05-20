@@ -24,7 +24,14 @@ const NAV_ITEMS: NavItem[] = [
     ],
   },
   { label: "Insights", imgSrc: "/bulb.svg" },
-  { label: "Análisis de Catálogo", imgSrc: "/bag.svg" },
+  {
+    label: "Análisis de Catálogo",
+    imgSrc: "/bag.svg",
+    chevron: true,
+    children: [
+      { label: "Productos con bajo rendimiento", href: "/rendimiento" },
+    ],
+  },
   { label: "Gestión de la Plataforma", imgSrc: "/campaign.svg" }, //Luego filtrar para rol = "admin_global_andesml"
   { label: "Estado de Carga de Datos"}, //Tal vez después agregar como tarjeta con un valor más que como botón a otra sección
 ];
