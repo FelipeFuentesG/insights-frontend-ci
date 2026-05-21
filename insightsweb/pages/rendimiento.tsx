@@ -159,7 +159,7 @@ export default function RendimientoPage() {
         <div className="home-content pl-content">
 
           {/* Selector de retailer para admin global */}
-          {user?.rol === "admin_global_andesml" && !retailerSeleccionado && (
+          {user?.rol === "admin_global_andesml" && (
             <div className="pl-retailer-selector">
               <p className="pl-retailer-selector-title">
                 Selecciona un retailer para analizar sus productos
@@ -168,7 +168,7 @@ export default function RendimientoPage() {
                 {retailers.map((r) => (
                   <button
                     key={r.idRetailer}
-                    className="pl-retailer-btn"
+                    className={`pl-retailer-btn${retailerSeleccionado === r.idRetailer ? " pl-retailer-btn--active" : ""}`}
                     onClick={() => setRetailerSeleccionado(r.idRetailer)}
                   >
                     {r.nombre}

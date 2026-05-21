@@ -38,8 +38,14 @@ const NAV_ITEMS: NavItem[] = [
 
 export default function Sidebar() {
   const router = useRouter();
-  const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({
-    Tableros: true, // abierto por defecto si estás en /productos
+  const [openMenus, setOpenMenus] = useState<Record<string, boolean>>(() => {
+    const initial: Record<string, boolean> = {};
+    NAV_ITEMS.forEach((item) => {
+      if (item.children?.some((c) => c.href && router.pathname.startsWith(c.href))) {
+        initial[item.label] = true;
+      }
+    });
+    return initial;
   });
 
   const toggleMenu = (label: string) => {
