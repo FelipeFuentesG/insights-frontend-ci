@@ -20,6 +20,7 @@ const NAV_ITEMS: NavItem[] = [
       { label: "Dashboard de Productos", href: "/productos" },
       { label: "Dashboard de Ventas Totales", href: "/ventas" },
       { label: "Dashboard de Clientes", href: "/clientes" },
+      { label: "Segmentos de Clientes", href: "/segmentos" },
       { label: "Dashboard Global de Retailer"}, //Luego filtrar para rol = "admin_retailer"
     ],
   },
