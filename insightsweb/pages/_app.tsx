@@ -9,6 +9,8 @@ import "../styles/rendimiento.css";
 import "../components/Sidebar.css";
 import "../components/IndicadoresTab.css";
 import "../components/InteraccionesTab.css";
+import "../components/InsightsChat.css";
+import InsightsFloatingWidget from "../components/InsightsFloatingWidget";
 
 const geistSans = Geist({ subsets: ["latin"] });
 
@@ -16,6 +18,7 @@ export default function App({ Component, pageProps }: AppProps) {
   return (
     <div className={geistSans.className}>
       <Component {...pageProps} />
+      <InsightsFloatingWidget />
     </div>
   );
 }

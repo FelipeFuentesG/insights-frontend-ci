@@ -24,7 +24,7 @@ const NAV_ITEMS: NavItem[] = [
       { label: "Dashboard Global de Retailer"}, //Luego filtrar para rol = "admin_retailer"
     ],
   },
-  { label: "Insights", imgSrc: "/bulb.svg" },
+  { label: "Insights", imgSrc: "/bulb.svg", href: "/insights" },
   {
     label: "Análisis de Catálogo",
     imgSrc: "/bag.svg",
