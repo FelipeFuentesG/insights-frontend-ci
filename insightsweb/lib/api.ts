@@ -110,3 +110,19 @@ export async function fetchClientesSerie(
   if (!res.ok) throw new Error("Error al cargar la serie de clientes.");
   return res.json();
 }
+
+export interface ClienteRaw {
+  id_cliente: number;
+  id_marca: number;
+  id_cluster: number | null;
+  nombre: string | null;
+  edad: number | null;
+  genero: string | null;
+  comuna: string | null;
+}
+
+export async function fetchClientesRaw(): Promise<ClienteRaw[]> {
+  const res = await apiFetch(`/bq/Cliente`);
+  if (!res.ok) throw new Error("Error al cargar los clientes.");
+  return res.json();
+}

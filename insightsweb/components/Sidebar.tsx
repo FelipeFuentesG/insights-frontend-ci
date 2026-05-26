@@ -20,19 +20,33 @@ const NAV_ITEMS: NavItem[] = [
       { label: "Dashboard de Productos", href: "/productos" },
       { label: "Dashboard de Ventas Totales", href: "/ventas" },
       { label: "Dashboard de Clientes", href: "/clientes" },
+      { label: "Segmentos de Clientes", href: "/segmentos" },
       { label: "Dashboard Global de Retailer"}, //Luego filtrar para rol = "admin_retailer"
     ],
   },
   { label: "Insights", imgSrc: "/bulb.svg", href: "/insights" },
-  { label: "Análisis de Catálogo", imgSrc: "/bag.svg" },
+  {
+    label: "Análisis de Catálogo",
+    imgSrc: "/bag.svg",
+    chevron: true,
+    children: [
+      { label: "Productos con bajo rendimiento", href: "/rendimiento" },
+    ],
+  },
   { label: "Gestión de la Plataforma", imgSrc: "/campaign.svg" }, //Luego filtrar para rol = "admin_global_andesml"
   { label: "Estado de Carga de Datos"}, //Tal vez después agregar como tarjeta con un valor más que como botón a otra sección
 ];
 
 export default function Sidebar() {
   const router = useRouter();
-  const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({
-    Tableros: true, // abierto por defecto si estás en /productos
+  const [openMenus, setOpenMenus] = useState<Record<string, boolean>>(() => {
+    const initial: Record<string, boolean> = {};
+    NAV_ITEMS.forEach((item) => {
+      if (item.children?.some((c) => c.href && router.pathname.startsWith(c.href))) {
+        initial[item.label] = true;
+      }
+    });
+    return initial;
   });
 
   const toggleMenu = (label: string) => {
