@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/router";
 import Sidebar from "../../components/Sidebar";
+import { fetchClientesSerie, ClientesPeriodo } from "../../lib/api";
 import { apiFetch } from "../../lib/api";
 import {
   LineChart,
@@ -38,42 +39,13 @@ interface MarcaResumen {
   nombre: string;
 }
 
-interface MetricasAgregadas {
-  ingresosTotal: number;
-  unidadesVendidas: number;
-}
-
-interface MetricasPeriodo {
-  periodo: string;
-  ingresosTotal: number;
-  unidadesVendidas: number;
-}
-
 type AgruparPor = "dia" | "semana" | "mes" | "año";
-type MetricaActiva = "ingresosTotal" | "unidadesVendidas";
 type TipoGrafico = "line" | "bar";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function formatCLP(value: number): string {
-  return new Intl.NumberFormat("es-CL", {
-    style: "currency",
-    currency: "CLP",
-    maximumFractionDigits: 0,
-  }).format(value);
-}
-
 function formatNum(value: number): string {
-  return new Intl.NumberFormat("es-CL").format(value);
-}
-
-function buildQuery(desde: string, hasta: string, agruparPor?: AgruparPor): string {
-  const params = new URLSearchParams();
-  if (desde) params.set("desde", desde);
-  if (hasta) params.set("hasta", hasta);
-  if (agruparPor) params.set("agruparPor", agruparPor);
-  const qs = params.toString();
-  return qs ? `?${qs}` : "";
+  return new Intl.NumberFormat("es-CL", { maximumFractionDigits: 0 }).format(value);
 }
 
 function getIsoToday(): string {
@@ -132,7 +104,7 @@ function SegmentedControl<T extends string>({
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-export default function VentasTotalesPage() {
+export default function ClientesPage() {
   const router = useRouter();
 
   const [user, setUser] = useState<User | null>(null);
@@ -152,11 +124,9 @@ export default function VentasTotalesPage() {
 
   // Controles de gráfico
   const [tipoGrafico, setTipoGrafico] = useState<TipoGrafico>("line");
-  const [metricaActiva, setMetricaActiva] = useState<MetricaActiva>("ingresosTotal");
 
   // Datos
-  const [metricas, setMetricas] = useState<MetricasAgregadas | null>(null);
-  const [serie, setSerie] = useState<MetricasPeriodo[]>([]);
+  const [serie, setSerie] = useState<ClientesPeriodo[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -210,7 +180,7 @@ export default function VentasTotalesPage() {
     } else if (user.rol === "admin_retailer") {
       idRetailer = user.idRetailer;
     } else {
-      return; // admin_marca no necesita este fetch
+      return;
     }
 
     if (!idRetailer) return;
@@ -224,40 +194,39 @@ export default function VentasTotalesPage() {
       .catch(() => setError("No se pudieron cargar las marcas."));
   }, [user, retailerSeleccionado]);
 
-  // ── Fetch ventas ──────────────────────────────────────────────────────────
+  // ── Derived: effective IDs ─────────────────────────────────────────────────
+  const effectiveIdMarca = marcaSeleccionada;
+  const effectiveIdRetailer =
+    user?.rol === "admin_global_andesml" ? retailerSeleccionado : user?.idRetailer ?? null;
+
+  const hasTarget = Boolean(effectiveIdMarca || effectiveIdRetailer);
+
+  // ── Fetch clientes ─────────────────────────────────────────────────────────
   const fetchData = useCallback(async () => {
-    if (!marcaSeleccionada) return;
+    if (!effectiveIdMarca && !effectiveIdRetailer) return;
     setLoading(true);
     setError(null);
 
     try {
-      const base = `/db/marcas/${marcaSeleccionada}/ventas`;
-      const [resM, resS] = await Promise.all([
-        apiFetch(`${base}/metricas${buildQuery(desde, hasta)}`),
-        apiFetch(`${base}/serie${buildQuery(desde, hasta, agruparPor)}`),
-      ]);
-
-      if (!resM.ok || !resS.ok) throw new Error("Error al cargar los datos de ventas.");
-
-      const [dataM, dataS]: [MetricasAgregadas, MetricasPeriodo[]] = await Promise.all([
-        resM.json(),
-        resS.json(),
-      ]);
-
-      setMetricas(dataM);
-      setSerie(dataS);
+      let data: ClientesPeriodo[];
+      if (effectiveIdMarca) {
+        data = await fetchClientesSerie("marca", String(effectiveIdMarca), desde, hasta, agruparPor);
+      } else {
+        data = await fetchClientesSerie("retailer", String(effectiveIdRetailer!), desde, hasta, agruparPor);
+      }
+      setSerie(data);
     } catch (e) {
       setError((e as Error).message ?? "Error desconocido.");
     } finally {
       setLoading(false);
     }
-  }, [marcaSeleccionada, desde, hasta, agruparPor]);
+  }, [effectiveIdMarca, effectiveIdRetailer, desde, hasta, agruparPor]);
 
   useEffect(() => {
     fetchData();
   }, [fetchData]);
 
-  // ── Derived ───────────────────────────────────────────────────────────────
+  // ── Derived stats ─────────────────────────────────────────────────────────
   const initials = (user?.nombre ?? "U")
     .split(" ")
     .slice(0, 2)
@@ -265,14 +234,8 @@ export default function VentasTotalesPage() {
     .join("")
     .toUpperCase();
 
-  const promedio =
-    serie.length > 0
-      ? serie.reduce((acc, p) => acc + p.ingresosTotal, 0) / serie.length
-      : 0;
-
-  const metricaLabel = metricaActiva === "ingresosTotal" ? "Ingresos" : "Unidades vendidas";
-  const metricaFormatter = (v: number) =>
-    metricaActiva === "ingresosTotal" ? formatCLP(v) : formatNum(v);
+  const totalClientes = serie.reduce((acc, p) => acc + p.totalClientes, 0);
+  const promedio = serie.length > 0 ? totalClientes / serie.length : 0;
 
   const agruparPorLabel: Record<AgruparPor, string> = {
     dia: "días",
@@ -280,9 +243,6 @@ export default function VentasTotalesPage() {
     mes: "meses",
     año: "años",
   };
-
-  const idRetailerActivo =
-    user?.rol === "admin_global_andesml" ? retailerSeleccionado : user?.idRetailer ?? null;
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (
@@ -293,20 +253,17 @@ export default function VentasTotalesPage() {
         <header className="home-header">
           <div className="pd-header-left">
             {(marcaSeleccionada || retailerSeleccionado) && user?.rol !== "admin_marca" && (
-
               <button
                 className="pd-back-btn"
                 onClick={() => {
                   if (marcaSeleccionada) {
                     setMarcaSeleccionada(null);
                     setNombreMarca("");
-                    setMetricas(null);
                     setSerie([]);
                   } else {
                     setRetailerSeleccionado(null);
                   }
                 }}
-
                 aria-label="Volver"
               >
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
@@ -324,12 +281,12 @@ export default function VentasTotalesPage() {
               <p className="pd-header-sup">Tableros</p>
               <div style={{ display: "flex", alignItems: "baseline", gap: "10px" }}>
                 <p className="home-greeting" style={{ margin: 0 }}>
-                  Ventas Totales{nombreMarca ? ` — ${nombreMarca}` : ""}
+                  Dashboard de Clientes{nombreMarca ? ` — ${nombreMarca}` : ""}
                 </p>
-                {marcaSeleccionada && (
+                {hasTarget && (
                   <p style={{ fontSize: "0.75rem", color: "#9ca3af", margin: 0 }}>
-                    ID Marca #{marcaSeleccionada}
-                    {idRetailerActivo ? ` · ID Retailer #${idRetailerActivo}` : ""}
+                    {effectiveIdMarca ? `ID Marca #${effectiveIdMarca}` : ""}
+                    {effectiveIdRetailer ? ` · ID Retailer #${effectiveIdRetailer}` : ""}
                   </p>
                 )}
               </div>
@@ -381,8 +338,9 @@ export default function VentasTotalesPage() {
             </div>
           )}
 
+          {/* Selector de marca — admin global (ya tiene retailer) o admin_retailer */}
           {(user?.rol === "admin_global_andesml" || user?.rol === "admin_retailer") &&
-            idRetailerActivo &&
+            effectiveIdRetailer &&
             !marcaSeleccionada && (
               <div className="pl-retailer-selector">
                 <p className="pl-retailer-selector-title">Selecciona una marca</p>
@@ -403,11 +361,9 @@ export default function VentasTotalesPage() {
               </div>
             )}
 
-          {/* Contenido principal — solo cuando hay marca seleccionada */}
-          {marcaSeleccionada && (
+          {/* Contenido principal */}
+          {hasTarget && (effectiveIdMarca || user?.rol === "admin_retailer") && (
             <>
-              
-
               {/* Filtros */}
               <section className="pd-filters-bar">
                 <div className="pd-filter-group">
@@ -458,13 +414,12 @@ export default function VentasTotalesPage() {
               {/* KPIs */}
               <section className="pd-kpi-row">
                 <KpiCard
-                  label="Ingresos totales"
-                  value={metricas ? formatCLP(metricas.ingresosTotal) : "—"}
-                  sub={`Promedio por período: ${formatCLP(promedio)}`}
+                  label="Total clientes únicos"
+                  value={serie.length > 0 ? formatNum(totalClientes) : "—"}
                 />
                 <KpiCard
-                  label="Unidades vendidas"
-                  value={metricas ? `${formatNum(metricas.unidadesVendidas)} u.` : "—"}
+                  label="Promedio por período"
+                  value={serie.length > 0 ? formatNum(Math.round(promedio)) : "—"}
                 />
                 <KpiCard
                   label="Períodos analizados"
@@ -477,15 +432,7 @@ export default function VentasTotalesPage() {
               <section className="pd-card">
                 <div className="pd-card-header">
                   <div className="pd-card-header-left">
-                    <h2 className="pd-card-title">Evolución de ventas</h2>
-                    <SegmentedControl<MetricaActiva>
-                      options={[
-                        { value: "ingresosTotal", label: "Ingresos" },
-                        { value: "unidadesVendidas", label: "Unidades" },
-                      ]}
-                      value={metricaActiva}
-                      onChange={setMetricaActiva}
-                    />
+                    <h2 className="pd-card-title">Evolución de clientes totales</h2>
                   </div>
                   <SegmentedControl<TipoGrafico>
                     options={[
@@ -517,13 +464,13 @@ export default function VentasTotalesPage() {
                         >
                           <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                           <XAxis dataKey="periodo" tick={{ fontSize: 12, fill: "#6b7280" }} axisLine={false} tickLine={false} />
-                          <YAxis tickFormatter={metricaFormatter} tick={{ fontSize: 11, fill: "#6b7280" }} axisLine={false} tickLine={false} width={88} />
+                          <YAxis tickFormatter={formatNum} tick={{ fontSize: 11, fill: "#6b7280" }} axisLine={false} tickLine={false} width={72} />
                           <Tooltip
-                            formatter={(v) => [metricaFormatter(Number(v ?? 0)), metricaLabel]}
+                            formatter={(v) => [formatNum(Number(v ?? 0)), "Clientes únicos"]}
                             contentStyle={{ background: "#ffffff", border: "1px solid #e5e7eb", borderRadius: "8px", fontSize: "13px", boxShadow: "0 4px 12px rgba(0,0,0,0.08)" }}
                           />
-                          <Legend formatter={() => metricaLabel} iconType="circle" wrapperStyle={{ fontSize: "12px", paddingTop: "12px" }} />
-                          <Line type="monotone" dataKey={metricaActiva} stroke="#6366f1" strokeWidth={2.5} dot={{ r: 4, fill: "#6366f1", strokeWidth: 0 }} activeDot={{ r: 6, fill: "#4f46e5" }} name={metricaLabel} />
+                          <Legend formatter={() => "Clientes únicos"} iconType="circle" wrapperStyle={{ fontSize: "12px", paddingTop: "12px" }} />
+                          <Line type="monotone" dataKey="totalClientes" stroke="#10b981" strokeWidth={2.5} dot={{ r: 4, fill: "#10b981", strokeWidth: 0 }} activeDot={{ r: 6, fill: "#059669" }} name="Clientes únicos" />
                         </LineChart>
                       ) : (
                         <BarChart 
@@ -534,13 +481,13 @@ export default function VentasTotalesPage() {
                         >
                           <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                           <XAxis dataKey="periodo" tick={{ fontSize: 12, fill: "#6b7280" }} axisLine={false} tickLine={false} />
-                          <YAxis tickFormatter={metricaFormatter} tick={{ fontSize: 11, fill: "#6b7280" }} axisLine={false} tickLine={false} width={88} />
+                          <YAxis tickFormatter={formatNum} tick={{ fontSize: 11, fill: "#6b7280" }} axisLine={false} tickLine={false} width={72} />
                           <Tooltip
-                            formatter={(v) => [metricaFormatter(Number(v ?? 0)), metricaLabel]}
+                            formatter={(v) => [formatNum(Number(v ?? 0)), "Clientes únicos"]}
                             contentStyle={{ background: "#ffffff", border: "1px solid #e5e7eb", borderRadius: "8px", fontSize: "13px", boxShadow: "0 4px 12px rgba(0,0,0,0.08)" }}
                           />
-                          <Legend formatter={() => metricaLabel} wrapperStyle={{ fontSize: "12px", paddingTop: "12px" }} />
-                          <Bar dataKey={metricaActiva} fill="#6366f1" radius={[4, 4, 0, 0]} name={metricaLabel} />
+                          <Legend formatter={() => "Clientes únicos"} wrapperStyle={{ fontSize: "12px", paddingTop: "12px" }} />
+                          <Bar dataKey="totalClientes" fill="#10b981" radius={[4, 4, 0, 0]} name="Clientes únicos" />
                         </BarChart>
                       )}
                     </div>
@@ -561,16 +508,14 @@ export default function VentasTotalesPage() {
                       <thead>
                         <tr>
                           <th className="pd-th">Período</th>
-                          <th className="pd-th pd-th--right">Ingresos</th>
-                          <th className="pd-th pd-th--right">Unidades</th>
+                          <th className="pd-th pd-th--right">Clientes únicos</th>
                         </tr>
                       </thead>
                       <tbody>
                         {serie.map((row, i) => (
                           <tr key={row.periodo} className={`pd-tr${i % 2 !== 0 ? " pd-tr--alt" : ""}`}>
                             <td className="pd-td pd-td--mono">{row.periodo}</td>
-                            <td className="pd-td pd-td--right">{formatCLP(row.ingresosTotal)}</td>
-                            <td className="pd-td pd-td--right">{formatNum(row.unidadesVendidas)}</td>
+                            <td className="pd-td pd-td--right">{formatNum(row.totalClientes)}</td>
                           </tr>
                         ))}
                       </tbody>
