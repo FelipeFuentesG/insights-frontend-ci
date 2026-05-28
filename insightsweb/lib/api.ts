@@ -111,18 +111,36 @@ export async function fetchClientesSerie(
   return res.json();
 }
 
-export interface ClienteRaw {
-  id_cliente: number;
-  id_marca: number;
-  id_cluster: number | null;
+export interface ClienteResumen {
+  idCliente: number;
   nombre: string | null;
   edad: number | null;
   genero: string | null;
   comuna: string | null;
 }
 
-export async function fetchClientesRaw(): Promise<ClienteRaw[]> {
-  const res = await apiFetch(`/bq/Cliente`);
+export async function fetchClientesPorMarca(idMarca: string): Promise<ClienteResumen[]> {
+  const res = await apiFetch(`/db/marcas/${idMarca}/clientes`);
   if (!res.ok) throw new Error("Error al cargar los clientes.");
+  return res.json();
+}
+
+export interface SegmentoCompra {
+  idCluster: number;
+  nombre: string | null;
+  descripcion: string | null;
+  definidoIa: boolean;
+  totalClientes: number;
+}
+
+export interface SegmentosCompra {
+  segmentos: SegmentoCompra[];
+  clientesSinSegmento: number;
+  totalClientes: number;
+}
+
+export async function fetchSegmentosCompra(idMarca: string): Promise<SegmentosCompra> {
+  const res = await apiFetch(`/db/marcas/${idMarca}/segmentos-compra`);
+  if (!res.ok) throw new Error("Error al cargar los segmentos de compra.");
   return res.json();
 }
