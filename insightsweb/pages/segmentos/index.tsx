@@ -1,7 +1,13 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useRouter } from "next/router";
 import Sidebar from "../../components/Sidebar";
-import { apiFetch, fetchClientesRaw, ClienteRaw } from "../../lib/api";
+import {
+  apiFetch,
+  fetchClientesPorMarca,
+  ClienteResumen,
+  fetchSegmentosCompra,
+  SegmentosCompra,
+} from "../../lib/api";
 import {
   PieChart,
   Pie,
@@ -63,7 +69,7 @@ function bucketEdad(edad: number): string {
 }
 
 function aggregate(
-  clientes: ClienteRaw[],
+  clientes: ClienteResumen[],
   dimension: Dimension
 ): SliceDatum[] {
   const counts = new Map<string, number>();
@@ -174,9 +180,13 @@ export default function SegmentosPage() {
   const [dimension, setDimension] = useState<Dimension>("edad");
 
   // Datos
-  const [clientes, setClientes] = useState<ClienteRaw[]>([]);
+  const [clientes, setClientes] = useState<ClienteResumen[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Segmentos de compra
+  const [segmentos, setSegmentos] = useState<SegmentosCompra | null>(null);
+  const [loadingSeg, setLoadingSeg] = useState(false);
 
   // Layout responsive
   const chartContainerRef = useRef<HTMLDivElement>(null);
@@ -236,15 +246,14 @@ export default function SegmentosPage() {
 
   const hasTarget = Boolean(effectiveIdMarca);
 
-  // ── Fetch clientes (raw) y filtrar en frontend por marca ──────────────────
+  // ── Fetch clientes por marca ───────────────────────────────────────────────
   const fetchData = useCallback(async () => {
     if (!effectiveIdMarca) return;
     setLoading(true);
     setError(null);
     try {
-      const raw = await fetchClientesRaw();
-      const filtrados = raw.filter((c) => Number(c.id_marca) === Number(effectiveIdMarca));
-      setClientes(filtrados);
+      const data = await fetchClientesPorMarca(String(effectiveIdMarca));
+      setClientes(data);
     } catch (e) {
       setError((e as Error).message ?? "Error desconocido.");
     } finally {
@@ -255,6 +264,25 @@ export default function SegmentosPage() {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  // ── Fetch segmentos de compra por marca ────────────────────────────────────
+  const fetchSegmentos = useCallback(async () => {
+    if (!effectiveIdMarca) return;
+    setLoadingSeg(true);
+    setError(null);
+    try {
+      const data = await fetchSegmentosCompra(String(effectiveIdMarca));
+      setSegmentos(data);
+    } catch (e) {
+      setError((e as Error).message ?? "Error desconocido.");
+    } finally {
+      setLoadingSeg(false);
+    }
+  }, [effectiveIdMarca]);
+
+  useEffect(() => {
+    fetchSegmentos();
+  }, [fetchSegmentos]);
 
   // ── Derivados ──────────────────────────────────────────────────────────────
   const initials = (user?.nombre ?? "U")
@@ -283,6 +311,28 @@ export default function SegmentosPage() {
     comuna: "Comuna",
   };
 
+  const SIN_SEGMENTO_COLOR = "#cbd5e1";
+
+  const segChartData = useMemo(() => {
+    if (!segmentos) return [];
+    const data = segmentos.segmentos.map((s, i) => ({
+      name: s.nombre ?? `Segmento ${s.idCluster}`,
+      value: s.totalClientes,
+      fill: PIE_COLORS[i % PIE_COLORS.length],
+    }));
+    if (segmentos.clientesSinSegmento > 0) {
+      data.push({
+        name: "Sin segmento",
+        value: segmentos.clientesSinSegmento,
+        fill: SIN_SEGMENTO_COLOR,
+      });
+    }
+    return data;
+  }, [segmentos]);
+
+  const totalSeg = segmentos?.totalClientes ?? 0;
+  const pct = (n: number) => (totalSeg > 0 ? Math.round((n / totalSeg) * 100) : 0);
+
   // ── Render ────────────────────────────────────────────────────────────────
   return (
     <div className="home-layout">
@@ -299,6 +349,7 @@ export default function SegmentosPage() {
                     setMarcaSeleccionada(null);
                     setNombreMarca("");
                     setClientes([]);
+                    setSegmentos(null);
                   } else {
                     setRetailerSeleccionado(null);
                   }
@@ -553,13 +604,123 @@ export default function SegmentosPage() {
               )}
 
               {tab === "compras" && (
-                <section className="pd-card">
-                  <div className="pd-empty">
-                    <p className="pd-empty-text">
-                      Segmentación por compras en construcción.
-                    </p>
-                  </div>
-                </section>
+                <>
+                  {/* KPIs */}
+                  <section className="pd-kpi-row">
+                    <KpiCard
+                      label="Total clientes"
+                      value={loadingSeg ? "—" : formatNum(totalSeg)}
+                    />
+                    <KpiCard
+                      label="Segmentos definidos"
+                      value={loadingSeg || !segmentos ? "—" : formatNum(segmentos.segmentos.length)}
+                    />
+                    <KpiCard
+                      label="Clientes sin segmento"
+                      value={loadingSeg || !segmentos ? "—" : formatNum(segmentos.clientesSinSegmento)}
+                      sub={
+                        loadingSeg || !segmentos
+                          ? undefined
+                          : `${pct(segmentos.clientesSinSegmento)}% del total`
+                      }
+                    />
+                  </section>
+
+                  {/* Gráfico de distribución */}
+                  <section className="pd-card">
+                    <div className="pd-card-header">
+                      <h2 className="pd-card-title">Distribución por segmento de compra</h2>
+                    </div>
+                    <div className="pd-chart-area">
+                      {loadingSeg ? (
+                        <div className="pd-skeleton" />
+                      ) : segChartData.length === 0 ? (
+                        <div className="pd-empty">
+                          <p className="pd-empty-text">
+                            No hay segmentos definidos para esta marca.
+                          </p>
+                        </div>
+                      ) : (
+                        <ResponsiveContainer width="100%" height={360}>
+                          <PieChart>
+                            <Pie
+                              data={segChartData}
+                              dataKey="value"
+                              nameKey="name"
+                              cx="50%"
+                              cy="50%"
+                              outerRadius={120}
+                              innerRadius={60}
+                              paddingAngle={2}
+                              label={({ name, percent }) =>
+                                `${name} (${Math.round((percent ?? 0) * 100)}%)`
+                              }
+                              labelLine={false}
+                            />
+                            <Tooltip
+                              formatter={(v, n) => [formatNum(Number(v ?? 0)), String(n)]}
+                              contentStyle={{
+                                background: "#ffffff",
+                                border: "1px solid #e5e7eb",
+                                borderRadius: "8px",
+                                fontSize: "13px",
+                                boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
+                              }}
+                            />
+                            <Legend
+                              iconType="circle"
+                              wrapperStyle={{ fontSize: "12px", paddingTop: "12px" }}
+                            />
+                          </PieChart>
+                        </ResponsiveContainer>
+                      )}
+                    </div>
+                  </section>
+
+                  {/* Tarjetas por segmento con descripción */}
+                  {!loadingSeg && segmentos && segmentos.segmentos.length > 0 && (
+                    <section className="seg-grid">
+                      {segmentos.segmentos.map((s, i) => (
+                        <article
+                          key={s.idCluster}
+                          className="seg-card"
+                          style={{ borderTopColor: PIE_COLORS[i % PIE_COLORS.length] }}
+                        >
+                          <div className="seg-card-head">
+                            <h3 className="seg-card-title">
+                              {s.nombre ?? `Segmento ${s.idCluster}`}
+                            </h3>
+                            {s.definidoIa && <span className="seg-badge">IA</span>}
+                          </div>
+                          <p className="seg-card-count">{formatNum(s.totalClientes)}</p>
+                          <p className="seg-card-sub">
+                            {pct(s.totalClientes)}% del total · {formatNum(s.totalClientes)} clientes
+                          </p>
+                          <p className="seg-card-desc">
+                            {s.descripcion ?? "Sin descripción."}
+                          </p>
+                        </article>
+                      ))}
+
+                      {segmentos.clientesSinSegmento > 0 && (
+                        <article className="seg-card seg-card--muted">
+                          <div className="seg-card-head">
+                            <h3 className="seg-card-title">Sin segmento</h3>
+                          </div>
+                          <p className="seg-card-count">
+                            {formatNum(segmentos.clientesSinSegmento)}
+                          </p>
+                          <p className="seg-card-sub">
+                            {pct(segmentos.clientesSinSegmento)}% del total
+                          </p>
+                          <p className="seg-card-desc">
+                            Clientes que aún no han sido asignados a un segmento de compra.
+                          </p>
+                        </article>
+                      )}
+                    </section>
+                  )}
+                </>
               )}
             </>
           )}
