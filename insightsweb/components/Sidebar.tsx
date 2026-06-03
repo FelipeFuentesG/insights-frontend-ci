@@ -30,7 +30,7 @@ const NAV_ITEMS: NavItem[] = [
     imgSrc: "/bag.svg",
     chevron: true,
     children: [
-      { label: "Productos con bajo rendimiento", href: "/rendimiento" },
+      { label: "Productos con Bajo Rendimiento", href: "/rendimiento" },
     ],
   },
   { label: "Gestión de la Plataforma", imgSrc: "/campaign.svg" }, //Luego filtrar para rol = "admin_global_andesml"
