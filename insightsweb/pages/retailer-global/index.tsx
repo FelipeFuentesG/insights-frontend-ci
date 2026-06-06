@@ -2,6 +2,10 @@ import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/router";
 import Sidebar from "../../components/Sidebar";
 import { apiFetch } from "../../lib/api";
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid,
+  Tooltip, ResponsiveContainer, Cell,
+} from "recharts";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -138,6 +142,10 @@ export default function RetailerGlobalPage() {
   const [error, setError] = useState<string | null>(null);
   const [metrica, setMetrica] = useState<MetricaComparativo>("ingresosTotal");
 
+  // Comparador personalizado
+  const [marcasSeleccionadas, setMarcasSeleccionadas] = useState<number[]>([]);
+  const [busqueda, setBusqueda] = useState("");
+
   // ── Auth guard ────────────────────────────────────────────────────────────
   useEffect(() => {
     const stored = localStorage.getItem("user");
@@ -217,6 +225,29 @@ export default function RetailerGlobalPage() {
     formatNum(v);
   const maxTop    = top10[0]?.[metrica]    as number ?? 1;
   const maxBottom = bottom10[0]?.[metrica] as number ?? 1;
+
+  // ── Comparador personalizado ─────────────────────────────────────────────
+  const seleccionadas = comparativo.filter((m) => marcasSeleccionadas.includes(m.idMarca));
+  const resultadosBusqueda = comparativo
+    .filter(
+      (m) =>
+        !marcasSeleccionadas.includes(m.idMarca) &&
+        (m.nombre ?? "").toLowerCase().includes(busqueda.toLowerCase())
+    )
+    .slice(0, 8);
+
+  const addMarca = (idMarca: number) => {
+    if (marcasSeleccionadas.length >= 10) return;
+    setMarcasSeleccionadas((prev) => [...prev, idMarca]);
+    setBusqueda("");
+  };
+  const removeMarca = (idMarca: number) =>
+    setMarcasSeleccionadas((prev) => prev.filter((id) => id !== idMarca));
+
+  const PALETTE = [
+    "#6366f1","#f59e0b","#10b981","#ef4444","#3b82f6",
+    "#8b5cf6","#ec4899","#14b8a6","#f97316","#84cc16",
+  ];
 
   const initials = (user?.nombre ?? "U")
     .split(" ")
@@ -414,6 +445,152 @@ export default function RetailerGlobalPage() {
 
                   </div>
                 </>
+              )}
+
+              {/* ── Comparador personalizado ─────────────────────────────── */}
+              {!loading && comparativo.length > 0 && (
+                <section className="pd-card" style={{ marginTop: "1.25rem" }}>
+                  <div className="pd-card-header">
+                    <div className="pd-card-header-left">
+                      <h2 className="pd-card-title">Comparador personalizado</h2>
+                      <span style={{ fontSize: "0.75rem", color: "#9ca3af" }}>
+                        Selecciona hasta 10 marcas
+                      </span>
+                    </div>
+                    <span className="pd-table-count">{marcasSeleccionadas.length} / 10</span>
+                  </div>
+
+                  {/* Buscador */}
+                  <div style={{ position: "relative", marginBottom: "0.75rem" }}>
+                    <input
+                      type="text"
+                      className="pd-filter-input"
+                      style={{ width: "100%", boxSizing: "border-box" }}
+                      placeholder={
+                        marcasSeleccionadas.length >= 10
+                          ? "Límite de 10 marcas alcanzado"
+                          : "Buscar marca para agregar…"
+                      }
+                      value={busqueda}
+                      disabled={marcasSeleccionadas.length >= 10}
+                      onChange={(e) => setBusqueda(e.target.value)}
+                    />
+                    {busqueda.length > 0 && resultadosBusqueda.length > 0 && (
+                      <div style={{
+                        position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0,
+                        background: "#fff", border: "1px solid #e5e7eb", borderRadius: "8px",
+                        boxShadow: "0 4px 12px rgba(0,0,0,0.1)", zIndex: 100,
+                        maxHeight: "200px", overflowY: "auto",
+                      }}>
+                        {resultadosBusqueda.map((m) => (
+                          <button
+                            key={m.idMarca}
+                            onMouseDown={(e) => { e.preventDefault(); addMarca(m.idMarca); }}
+                            style={{
+                              width: "100%", padding: "0.5rem 0.75rem", textAlign: "left",
+                              fontSize: "0.85rem", border: "none", background: "transparent",
+                              cursor: "pointer", color: "#111827",
+                            }}
+                            onMouseEnter={(e) => (e.currentTarget.style.background = "#f9fafb")}
+                            onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                          >
+                            {m.nombre ?? `Marca #${m.idMarca}`}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    {busqueda.length > 0 && resultadosBusqueda.length === 0 && (
+                      <div style={{
+                        position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0,
+                        background: "#fff", border: "1px solid #e5e7eb", borderRadius: "8px",
+                        padding: "0.75rem", fontSize: "0.8rem", color: "#9ca3af", zIndex: 100,
+                      }}>
+                        Sin resultados
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Chips de marcas seleccionadas */}
+                  {marcasSeleccionadas.length > 0 && (
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem", marginBottom: "1.5rem" }}>
+                      {seleccionadas.map((m, i) => (
+                        <span
+                          key={m.idMarca}
+                          style={{
+                            display: "inline-flex", alignItems: "center", gap: "0.375rem",
+                            background: `${PALETTE[i % PALETTE.length]}18`,
+                            color: PALETTE[i % PALETTE.length],
+                            border: `1px solid ${PALETTE[i % PALETTE.length]}40`,
+                            borderRadius: "9999px", padding: "0.25rem 0.625rem",
+                            fontSize: "0.78rem", fontWeight: 500,
+                          }}
+                        >
+                          {m.nombre ?? `Marca #${m.idMarca}`}
+                          <button
+                            onClick={() => removeMarca(m.idMarca)}
+                            style={{ background: "none", border: "none", cursor: "pointer", padding: 0, lineHeight: 1, fontSize: "1rem", color: "inherit" }}
+                            aria-label={`Quitar ${m.nombre}`}
+                          >
+                            ×
+                          </button>
+                        </span>
+                      ))}
+                      <button
+                        onClick={() => setMarcasSeleccionadas([])}
+                        style={{ fontSize: "0.75rem", color: "#9ca3af", background: "none", border: "none", cursor: "pointer", padding: "0.25rem 0.5rem" }}
+                      >
+                        Limpiar todo
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Gráfico comparativo */}
+                  {seleccionadas.length >= 2 ? (
+                    <ResponsiveContainer width="100%" height={320}>
+                      <BarChart
+                        data={seleccionadas.map((m) => ({
+                          nombre: m.nombre ?? `#${m.idMarca}`,
+                          valor: m[metrica],
+                          idMarca: m.idMarca,
+                        }))}
+                        margin={{ top: 4, right: 20, left: 10, bottom: 70 }}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                        <XAxis
+                          dataKey="nombre"
+                          tick={{ fontSize: 11, fill: "#6b7280" }}
+                          angle={-35}
+                          textAnchor="end"
+                          interval={0}
+                        />
+                        <YAxis
+                          tickFormatter={metricaFormatter}
+                          tick={{ fontSize: 11, fill: "#6b7280" }}
+                          axisLine={false}
+                          tickLine={false}
+                          width={90}
+                        />
+                        <Tooltip
+                          formatter={(v) => [metricaFormatter(Number(v)), metricaOpts.find((o) => o.value === metrica)?.label]}
+                          contentStyle={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: "8px", fontSize: "13px", boxShadow: "0 4px 12px rgba(0,0,0,0.08)" }}
+                        />
+                        <Bar dataKey="valor" radius={[4, 4, 0, 0]}>
+                          {seleccionadas.map((_, i) => (
+                            <Cell key={i} fill={PALETTE[i % PALETTE.length]} />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="pd-empty">
+                      <p className="pd-empty-text">
+                        {marcasSeleccionadas.length === 0
+                          ? "Busca y agrega marcas para comparar su desempeño."
+                          : "Agrega al menos una marca más para ver el gráfico."}
+                      </p>
+                    </div>
+                  )}
+                </section>
               )}
             </>
           )}
