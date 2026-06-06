@@ -31,6 +31,8 @@ interface MarcaComparativo {
   presenciaCarritos: number;
 }
 
+type MetricaComparativo = "ingresosTotal" | "totalTransacciones" | "presenciaCarritos";
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function getIsoToday() {
@@ -71,6 +73,52 @@ function KpiCard({ label, value, sub }: { label: string; value: string; sub?: st
   );
 }
 
+function BrandRankList({
+  marcas,
+  metrica,
+  formatter,
+  maxVal,
+  accent,
+}: {
+  marcas: MarcaComparativo[];
+  metrica: MetricaComparativo;
+  formatter: (v: number) => string;
+  maxVal: number;
+  accent: string;
+}) {
+  if (marcas.length === 0) {
+    return <p className="pd-empty-text" style={{ padding: "1rem 0" }}>Sin datos.</p>;
+  }
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem" }}>
+      {marcas.map((m, i) => {
+        const val = m[metrica] as number;
+        const pct = maxVal > 0 ? (val / maxVal) * 100 : 0;
+        return (
+          <div key={m.idMarca} style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+            <span style={{ width: "1.4rem", fontSize: "0.75rem", color: "#9ca3af", flexShrink: 0, textAlign: "right" }}>
+              #{i + 1}
+            </span>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "3px" }}>
+                <span style={{ fontSize: "0.8rem", fontWeight: 500, color: "#111827", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {m.nombre ?? `Marca #${m.idMarca}`}
+                </span>
+                <span style={{ fontSize: "0.8rem", color: "#374151", flexShrink: 0, marginLeft: "0.5rem" }}>
+                  {formatter(val)}
+                </span>
+              </div>
+              <div style={{ height: "5px", background: "#f3f4f6", borderRadius: "3px", overflow: "hidden" }}>
+                <div style={{ height: "100%", width: `${pct}%`, background: accent, borderRadius: "3px", transition: "width 0.4s ease" }} />
+              </div>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function RetailerGlobalPage() {
@@ -88,6 +136,7 @@ export default function RetailerGlobalPage() {
   const [comparativo, setComparativo] = useState<MarcaComparativo[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [metrica, setMetrica] = useState<MetricaComparativo>("ingresosTotal");
 
   // ── Auth guard ────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -147,9 +196,27 @@ export default function RetailerGlobalPage() {
   // ── KPIs derivados del comparativo ───────────────────────────────────────
   const ingresosCanal = comparativo.reduce((s, m) => s + m.ingresosTotal, 0);
   const transaccionesCanal = comparativo.reduce((s, m) => s + m.totalTransacciones, 0);
-  const marcasActivas = comparativo.filter((m) => m.totalTransacciones > 0).length;
+  const marcasActivasCount = comparativo.filter((m) => m.totalTransacciones > 0).length;
   const ticketPromedio = transaccionesCanal > 0 ? ingresosCanal / transaccionesCanal : 0;
   const clientesCanal = comparativo.reduce((s, m) => s + m.clientesUnicos, 0);
+
+  // ── Top 10 / Bottom 10 ───────────────────────────────────────────────────
+  const sorted = [...comparativo].sort((a, b) => b[metrica] - a[metrica]);
+  const top10 = sorted.slice(0, 10);
+  const marcasConActividad = comparativo.filter((m) => m.totalTransacciones > 0);
+  const bottom10 = [...marcasConActividad].sort((a, b) => a[metrica] - b[metrica]).slice(0, 10);
+
+  const metricaOpts: { value: MetricaComparativo; label: string }[] = [
+    { value: "ingresosTotal",      label: "Ingresos" },
+    { value: "totalTransacciones", label: "Transacciones" },
+    { value: "presenciaCarritos",  label: "Presencia en carrito" },
+  ];
+  const metricaFormatter = (v: number) =>
+    metrica === "ingresosTotal"      ? formatCLP(v) :
+    metrica === "presenciaCarritos"  ? formatPct(v) :
+    formatNum(v);
+  const maxTop    = top10[0]?.[metrica]    as number ?? 1;
+  const maxBottom = bottom10[0]?.[metrica] as number ?? 1;
 
   const initials = (user?.nombre ?? "U")
     .split(" ")
@@ -279,7 +346,7 @@ export default function RetailerGlobalPage() {
                 />
                 <KpiCard
                   label="Marcas activas"
-                  value={loading ? "—" : String(marcasActivas)}
+                  value={loading ? "—" : String(marcasActivasCount)}
                   sub={`de ${comparativo.length} marcas`}
                 />
                 <KpiCard
@@ -293,6 +360,61 @@ export default function RetailerGlobalPage() {
               </section>
 
               {loading && <div className="pd-skeleton" style={{ marginTop: "1.5rem", height: 80 }} />}
+
+              {/* Selector de métrica para los rankings */}
+              {!loading && comparativo.length > 0 && (
+                <>
+                  <div style={{ display: "flex", alignItems: "center", gap: "1rem", marginTop: "2rem", marginBottom: "1rem" }}>
+                    <h2 style={{ fontSize: "1rem", fontWeight: 600, color: "#111827", margin: 0 }}>
+                      Ranking de marcas
+                    </h2>
+                    <select
+                      className="pd-filter-input"
+                      style={{ width: "auto" }}
+                      value={metrica}
+                      onChange={(e) => setMetrica(e.target.value as MetricaComparativo)}
+                    >
+                      {metricaOpts.map((o) => (
+                        <option key={o.value} value={o.value}>{o.label}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1.25rem" }}>
+
+                    {/* Top 10 mejores */}
+                    <section className="pd-card">
+                      <div className="pd-card-header">
+                        <h2 className="pd-card-title">Top 10 mejores</h2>
+                        <span className="pd-table-count">{top10.length} marcas</span>
+                      </div>
+                      <BrandRankList
+                        marcas={top10}
+                        metrica={metrica}
+                        formatter={metricaFormatter}
+                        maxVal={maxTop}
+                        accent="#6366f1"
+                      />
+                    </section>
+
+                    {/* Top 10 peores */}
+                    <section className="pd-card">
+                      <div className="pd-card-header">
+                        <h2 className="pd-card-title">Top 10 con menor desempeño</h2>
+                        <span className="pd-table-count">{bottom10.length} marcas</span>
+                      </div>
+                      <BrandRankList
+                        marcas={bottom10}
+                        metrica={metrica}
+                        formatter={metricaFormatter}
+                        maxVal={maxBottom}
+                        accent="#f59e0b"
+                      />
+                    </section>
+
+                  </div>
+                </>
+              )}
             </>
           )}
 
