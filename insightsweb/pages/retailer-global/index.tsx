@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/router";
 import Sidebar from "../../components/Sidebar";
 import { apiFetch } from "../../lib/api";
@@ -22,6 +22,15 @@ interface RetailerResumen {
   nombre: string;
 }
 
+interface MarcaComparativo {
+  idMarca: number;
+  nombre: string;
+  ingresosTotal: number;
+  totalTransacciones: number;
+  clientesUnicos: number;
+  presenciaCarritos: number;
+}
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function getIsoToday() {
@@ -34,6 +43,34 @@ function getSixMonthsAgo() {
   return d.toISOString().slice(0, 10);
 }
 
+function formatCLP(v: number) {
+  return new Intl.NumberFormat("es-CL", {
+    style: "currency",
+    currency: "CLP",
+    maximumFractionDigits: 0,
+  }).format(v);
+}
+
+function formatNum(v: number) {
+  return new Intl.NumberFormat("es-CL").format(v);
+}
+
+function formatPct(v: number) {
+  return `${(v * 100).toFixed(1)}%`;
+}
+
+// ─── Sub-componentes ──────────────────────────────────────────────────────────
+
+function KpiCard({ label, value, sub }: { label: string; value: string; sub?: string }) {
+  return (
+    <div className="pd-kpi-card">
+      <p className="pd-kpi-label">{label}</p>
+      <p className="pd-kpi-value">{value}</p>
+      {sub && <p className="pd-kpi-sub">{sub}</p>}
+    </div>
+  );
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function RetailerGlobalPage() {
@@ -42,13 +79,15 @@ export default function RetailerGlobalPage() {
   const [user, setUser] = useState<User | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
 
-  // Retailers (solo admin_global_andesml)
   const [retailers, setRetailers] = useState<RetailerResumen[]>([]);
   const [retailerSeleccionado, setRetailerSeleccionado] = useState<number | null>(null);
 
-  // Filtros de fecha
   const [desde, setDesde] = useState(getSixMonthsAgo());
   const [hasta, setHasta] = useState(getIsoToday());
+
+  const [comparativo, setComparativo] = useState<MarcaComparativo[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // ── Auth guard ────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -56,7 +95,6 @@ export default function RetailerGlobalPage() {
     if (!stored) { router.push("/login"); return; }
 
     const parsed: User = JSON.parse(stored);
-
     if (parsed.rol === "admin_marca") { router.push("/home"); return; }
 
     setUser(parsed);
@@ -75,14 +113,7 @@ export default function RetailerGlobalPage() {
       .catch(() => {});
   }, [user]);
 
-  // ── Derived ───────────────────────────────────────────────────────────────
-  const initials = (user?.nombre ?? "U")
-    .split(" ")
-    .slice(0, 2)
-    .map((w) => w[0])
-    .join("")
-    .toUpperCase();
-
+  // ── Derived (antes del callback para poder usarlo) ────────────────────────
   const idRetailerActivo =
     user?.rol === "admin_global_andesml" ? retailerSeleccionado : user?.idRetailer ?? null;
 
@@ -90,6 +121,42 @@ export default function RetailerGlobalPage() {
     user?.rol === "admin_global_andesml"
       ? retailers.find((r) => r.idRetailer === retailerSeleccionado)?.nombre ?? ""
       : user?.retailerNombre ?? "";
+
+  // ── Fetch comparativo ─────────────────────────────────────────────────────
+  const fetchComparativo = useCallback(async () => {
+    if (!idRetailerActivo) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const qs = new URLSearchParams();
+      if (desde) qs.set("desde", desde);
+      if (hasta) qs.set("hasta", hasta);
+      const res = await apiFetch(`/db/retailers/${idRetailerActivo}/marcas/comparativo?${qs}`);
+      if (!res.ok) throw new Error("Error al cargar los datos.");
+      const data: MarcaComparativo[] = await res.json();
+      setComparativo(data);
+    } catch (e) {
+      setError((e as Error).message ?? "Error desconocido.");
+    } finally {
+      setLoading(false);
+    }
+  }, [idRetailerActivo, desde, hasta]);
+
+  useEffect(() => { fetchComparativo(); }, [fetchComparativo]);
+
+  // ── KPIs derivados del comparativo ───────────────────────────────────────
+  const ingresosCanal = comparativo.reduce((s, m) => s + m.ingresosTotal, 0);
+  const transaccionesCanal = comparativo.reduce((s, m) => s + m.totalTransacciones, 0);
+  const marcasActivas = comparativo.filter((m) => m.totalTransacciones > 0).length;
+  const ticketPromedio = transaccionesCanal > 0 ? ingresosCanal / transaccionesCanal : 0;
+  const clientesCanal = comparativo.reduce((s, m) => s + m.clientesUnicos, 0);
+
+  const initials = (user?.nombre ?? "U")
+    .split(" ")
+    .slice(0, 2)
+    .map((w) => w[0])
+    .join("")
+    .toUpperCase();
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (
@@ -140,8 +207,6 @@ export default function RetailerGlobalPage() {
 
           {/* Barra de filtros */}
           <section className="pd-filters-bar">
-
-            {/* Selector de retailer — solo admin_global_andesml */}
             {user?.rol === "admin_global_andesml" && (
               <div className="pd-filter-group">
                 <label className="pd-filter-label">Retailer</label>
@@ -154,9 +219,7 @@ export default function RetailerGlobalPage() {
                 >
                   <option value="">Selecciona un retailer</option>
                   {retailers.map((r) => (
-                    <option key={r.idRetailer} value={r.idRetailer}>
-                      {r.nombre}
-                    </option>
+                    <option key={r.idRetailer} value={r.idRetailer}>{r.nombre}</option>
                   ))}
                 </select>
               </div>
@@ -184,25 +247,53 @@ export default function RetailerGlobalPage() {
                 onChange={(e) => setHasta(e.target.value)}
               />
             </div>
+
+            {idRetailerActivo && (
+              <button className="pd-apply-btn" onClick={fetchComparativo} disabled={loading}>
+                {loading ? "Cargando…" : "Aplicar"}
+              </button>
+            )}
           </section>
 
-          {/* Contenido — vacío hasta parte 2 */}
-          {!idRetailerActivo ? (
+          {/* Sin retailer seleccionado */}
+          {!idRetailerActivo && (
             <div className="pd-empty" style={{ marginTop: "3rem" }}>
-              <p className="pd-empty-text">
-                Selecciona un retailer para ver el dashboard global.
-              </p>
+              <p className="pd-empty-text">Selecciona un retailer para ver el dashboard global.</p>
             </div>
-          ) : (
-            <div className="pd-empty" style={{ marginTop: "3rem" }}>
-              <p className="pd-empty-text">
-                Retailer seleccionado: <strong>{nombreRetailerActivo || `#${idRetailerActivo}`}</strong>
-                <br />
-                Período: {desde} → {hasta}
-                <br />
-                <span style={{ color: "#6b7280" }}>Métricas en construcción (Parte 2).</span>
-              </p>
-            </div>
+          )}
+
+          {/* Contenido principal */}
+          {idRetailerActivo && (
+            <>
+              {error && <div className="pd-error-banner">{error}</div>}
+
+              {/* KPIs totales del canal */}
+              <section className="pd-kpi-row">
+                <KpiCard
+                  label="Ingresos totales del canal"
+                  value={loading ? "—" : formatCLP(ingresosCanal)}
+                />
+                <KpiCard
+                  label="Transacciones totales"
+                  value={loading ? "—" : formatNum(transaccionesCanal)}
+                />
+                <KpiCard
+                  label="Marcas activas"
+                  value={loading ? "—" : String(marcasActivas)}
+                  sub={`de ${comparativo.length} marcas`}
+                />
+                <KpiCard
+                  label="Ticket promedio del canal"
+                  value={loading ? "—" : formatCLP(ticketPromedio)}
+                />
+                <KpiCard
+                  label="Clientes únicos del canal"
+                  value={loading ? "—" : formatNum(clientesCanal)}
+                />
+              </section>
+
+              {loading && <div className="pd-skeleton" style={{ marginTop: "1.5rem", height: 80 }} />}
+            </>
           )}
 
         </div>
