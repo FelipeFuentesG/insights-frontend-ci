@@ -50,6 +50,9 @@ function getSixMonthsAgo() {
 }
 
 function formatCLP(v: number) {
+  if (v >= 1_000_000) {
+    return `$ ${(v / 1_000_000).toLocaleString("es-CL", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}M`;
+  }
   return new Intl.NumberFormat("es-CL", {
     style: "currency",
     currency: "CLP",
@@ -58,6 +61,9 @@ function formatCLP(v: number) {
 }
 
 function formatNum(v: number) {
+  if (v >= 1_000_000) {
+    return `${(v / 1_000_000).toLocaleString("es-CL", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}M`;
+  }
   return new Intl.NumberFormat("es-CL").format(v);
 }
 
