@@ -2,10 +2,6 @@ import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/router";
 import Sidebar from "../../components/Sidebar";
 import { apiFetch } from "../../lib/api";
-import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid,
-  Tooltip, ResponsiveContainer, Cell,
-} from "recharts";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -33,6 +29,7 @@ interface MarcaComparativo {
   totalTransacciones: number;
   clientesUnicos: number;
   presenciaCarritos: number;
+
 }
 
 type MetricaComparativo = "ingresosTotal" | "totalTransacciones" | "presenciaCarritos";
@@ -75,7 +72,7 @@ function formatPct(v: number) {
 
 function KpiCard({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
-    <div className="pd-kpi-card">
+    <div className="pd-kpi-card" style={{ padding: "14px 16px" }}>
       <p className="pd-kpi-label">{label}</p>
       <p className="pd-kpi-value">{value}</p>
       {sub && <p className="pd-kpi-sub">{sub}</p>}
@@ -243,7 +240,7 @@ export default function RetailerGlobalPage() {
     .slice(0, 8);
 
   const addMarca = (idMarca: number) => {
-    if (marcasSeleccionadas.length >= 10) return;
+    if (marcasSeleccionadas.length >= 5) return;
     setMarcasSeleccionadas((prev) => [...prev, idMarca]);
     setBusqueda("");
   };
@@ -252,7 +249,6 @@ export default function RetailerGlobalPage() {
 
   const PALETTE = [
     "#6366f1","#f59e0b","#10b981","#ef4444","#3b82f6",
-    "#8b5cf6","#ec4899","#14b8a6","#f97316","#84cc16",
   ];
 
   const initials = (user?.nombre ?? "U")
@@ -372,7 +368,7 @@ export default function RetailerGlobalPage() {
               {error && <div className="pd-error-banner">{error}</div>}
 
               {/* KPIs totales del canal */}
-              <section className="pd-kpi-row">
+              <section className="pd-kpi-row" style={{ gridTemplateColumns: "repeat(5, 1fr)" }}>
                 <KpiCard
                   label="Ingresos totales del canal"
                   value={loading ? "—" : formatCLP(ingresosCanal)}
@@ -458,12 +454,12 @@ export default function RetailerGlobalPage() {
                 <section className="pd-card" style={{ marginTop: "1.25rem" }}>
                   <div className="pd-card-header">
                     <div className="pd-card-header-left">
-                      <h2 className="pd-card-title">Comparador personalizado</h2>
+                      <h2 className="pd-card-title">Comparador de marcas</h2>
                       <span style={{ fontSize: "0.75rem", color: "#9ca3af" }}>
-                        Selecciona hasta 10 marcas
+                        Selecciona hasta 5 marcas
                       </span>
                     </div>
-                    <span className="pd-table-count">{marcasSeleccionadas.length} / 10</span>
+                    <span className="pd-table-count">{marcasSeleccionadas.length} / 5</span>
                   </div>
 
                   {/* Buscador */}
@@ -473,12 +469,12 @@ export default function RetailerGlobalPage() {
                       className="pd-filter-input"
                       style={{ width: "100%", boxSizing: "border-box" }}
                       placeholder={
-                        marcasSeleccionadas.length >= 10
-                          ? "Límite de 10 marcas alcanzado"
+                        marcasSeleccionadas.length >= 5
+                          ? "Límite de 5 marcas alcanzado"
                           : "Buscar marca para agregar…"
                       }
                       value={busqueda}
-                      disabled={marcasSeleccionadas.length >= 10}
+                      disabled={marcasSeleccionadas.length >= 5}
                       onChange={(e) => setBusqueda(e.target.value)}
                     />
                     {busqueda.length > 0 && resultadosBusqueda.length > 0 && (
@@ -516,17 +512,16 @@ export default function RetailerGlobalPage() {
                     )}
                   </div>
 
-                  {/* Chips de marcas seleccionadas */}
+                  {/* Chips */}
                   {marcasSeleccionadas.length > 0 && (
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem", marginBottom: "1.5rem" }}>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem", marginBottom: "1.25rem" }}>
                       {seleccionadas.map((m, i) => (
                         <span
                           key={m.idMarca}
                           style={{
                             display: "inline-flex", alignItems: "center", gap: "0.375rem",
-                            background: `${PALETTE[i % PALETTE.length]}18`,
-                            color: PALETTE[i % PALETTE.length],
-                            border: `1px solid ${PALETTE[i % PALETTE.length]}40`,
+                            background: `${PALETTE[i]}18`, color: PALETTE[i],
+                            border: `1px solid ${PALETTE[i]}40`,
                             borderRadius: "9999px", padding: "0.25rem 0.625rem",
                             fontSize: "0.78rem", fontWeight: 500,
                           }}
@@ -536,9 +531,7 @@ export default function RetailerGlobalPage() {
                             onClick={() => removeMarca(m.idMarca)}
                             style={{ background: "none", border: "none", cursor: "pointer", padding: 0, lineHeight: 1, fontSize: "1rem", color: "inherit" }}
                             aria-label={`Quitar ${m.nombre}`}
-                          >
-                            ×
-                          </button>
+                          >×</button>
                         </span>
                       ))}
                       <button
@@ -550,50 +543,83 @@ export default function RetailerGlobalPage() {
                     </div>
                   )}
 
-                  {/* Gráfico comparativo */}
-                  {seleccionadas.length >= 2 ? (
-                    <ResponsiveContainer width="100%" height={320}>
-                      <BarChart
-                        data={seleccionadas.map((m) => ({
-                          nombre: m.nombre ?? `#${m.idMarca}`,
-                          valor: m[metrica],
-                          idMarca: m.idMarca,
-                        }))}
-                        margin={{ top: 4, right: 20, left: 10, bottom: 70 }}
-                      >
-                        <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                        <XAxis
-                          dataKey="nombre"
-                          tick={{ fontSize: 11, fill: "#6b7280" }}
-                          angle={-35}
-                          textAnchor="end"
-                          interval={0}
-                        />
-                        <YAxis
-                          tickFormatter={metricaFormatter}
-                          tick={{ fontSize: 11, fill: "#6b7280" }}
-                          axisLine={false}
-                          tickLine={false}
-                          width={90}
-                        />
-                        <Tooltip
-                          formatter={(v) => [metricaFormatter(Number(v)), metricaOpts.find((o) => o.value === metrica)?.label]}
-                          contentStyle={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: "8px", fontSize: "13px", boxShadow: "0 4px 12px rgba(0,0,0,0.08)" }}
-                        />
-                        <Bar dataKey="valor" radius={[4, 4, 0, 0]}>
-                          {seleccionadas.map((_, i) => (
-                            <Cell key={i} fill={PALETTE[i % PALETTE.length]} />
-                          ))}
-                        </Bar>
-                      </BarChart>
-                    </ResponsiveContainer>
+                  {/* Tabla comparativa */}
+                  {seleccionadas.length >= 1 ? (
+                    <div style={{ overflowX: "auto" }}>
+                      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.85rem" }}>
+                        <thead>
+                          <tr>
+                            <th style={{ textAlign: "left", padding: "0.5rem 0.75rem", color: "#6b7280", fontWeight: 500, width: "160px", borderBottom: "1px solid #f3f4f6" }}>
+                              Métrica
+                            </th>
+                            {seleccionadas.map((m, i) => (
+                              <th key={m.idMarca} style={{ textAlign: "right", padding: "0.5rem 0.75rem", fontWeight: 600, color: PALETTE[i], borderBottom: "1px solid #f3f4f6", minWidth: "140px" }}>
+                                {m.nombre ?? `Marca #${m.idMarca}`}
+                              </th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {/* Ingresos totales */}
+                          <tr style={{ background: "#fafafa" }}>
+                            <td style={{ padding: "0.75rem", color: "#374151", fontWeight: 500 }}>Ingresos totales</td>
+                            {seleccionadas.map((m, i) => {
+                              const pct = ingresosCanal > 0 ? (m.ingresosTotal / ingresosCanal) * 100 : 0;
+                              return (
+                                <td key={m.idMarca} style={{ padding: "0.75rem", textAlign: "right" }}>
+                                  <div style={{ fontWeight: 600, color: "#111827" }}>{formatCLP(m.ingresosTotal)}</div>
+                                  <div style={{ marginTop: "0.35rem", height: "4px", background: "#f3f4f6", borderRadius: "9999px" }}>
+                                    <div style={{ width: `${Math.min(pct, 100)}%`, height: "100%", background: PALETTE[i], borderRadius: "9999px" }} />
+                                  </div>
+                                </td>
+                              );
+                            })}
+                          </tr>
+                          {/* % del canal */}
+                          <tr>
+                            <td style={{ padding: "0.75rem", color: "#374151", fontWeight: 500 }}>% del canal</td>
+                            {seleccionadas.map((m) => {
+                              const pct = ingresosCanal > 0 ? (m.ingresosTotal / ingresosCanal) * 100 : 0;
+                              return (
+                                <td key={m.idMarca} style={{ padding: "0.75rem", textAlign: "right", color: "#111827" }}>
+                                  {pct.toFixed(1)}%
+                                </td>
+                              );
+                            })}
+                          </tr>
+                          {/* Transacciones */}
+                          <tr style={{ background: "#fafafa" }}>
+                            <td style={{ padding: "0.75rem", color: "#374151", fontWeight: 500 }}>Transacciones</td>
+                            {seleccionadas.map((m) => (
+                              <td key={m.idMarca} style={{ padding: "0.75rem", textAlign: "right", color: "#111827" }}>
+                                {formatNum(m.totalTransacciones)}
+                              </td>
+                            ))}
+                          </tr>
+                          {/* Ticket promedio */}
+                          <tr>
+                            <td style={{ padding: "0.75rem", color: "#374151", fontWeight: 500 }}>Ticket promedio</td>
+                            {seleccionadas.map((m) => (
+                              <td key={m.idMarca} style={{ padding: "0.75rem", textAlign: "right", color: "#111827" }}>
+                                {m.totalTransacciones > 0 ? formatCLP(m.ingresosTotal / m.totalTransacciones) : "—"}
+                              </td>
+                            ))}
+                          </tr>
+                          {/* Presencia en carrito */}
+                          <tr style={{ background: "#fafafa" }}>
+                            <td style={{ padding: "0.75rem", color: "#374151", fontWeight: 500 }}>Presencia en carrito</td>
+                            {seleccionadas.map((m) => (
+                              <td key={m.idMarca} style={{ padding: "0.75rem", textAlign: "right", color: "#111827" }}>
+                                {formatPct(m.presenciaCarritos)}
+                              </td>
+                            ))}
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
                   ) : (
                     <div className="pd-empty">
-                      <p className="pd-empty-text">
-                        {marcasSeleccionadas.length === 0
-                          ? "Busca y agrega marcas para comparar su desempeño."
-                          : "Agrega al menos una marca más para ver el gráfico."}
-                      </p>
+                      <p className="pd-empty-text">Busca y agrega marcas para comparar su desempeño.</p>
                     </div>
                   )}
                 </section>
