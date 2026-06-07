@@ -27,6 +27,7 @@ interface MainMetrics     { ingresosTotal: number; totalTransacciones: number; p
 interface MetricasPeriodo { periodo: string; ingresosTotal: number; totalTransacciones: number; presenciaCarritos: number; }
 interface TopProducto     { idProducto: number; nombre: string; ingresosTotal: number; unidadesVendidas: number; }
 interface VentasPorCanal { canal: string; ingresosTotal: number; unidadesVendidas: number; }
+interface CarritoEventos { agregarCarro: number; quitarCarro: number; }
 
 type AgruparPor    = "dia" | "semana" | "mes" | "año";
 type MetricaActiva = "ingresosTotal" | "totalTransacciones" | "presenciaCarritos";
@@ -121,6 +122,7 @@ export default function IndicadoresTab({ user }: { user: StoredUser | null }) {
   const [error, setError]       = useState<string | null>(null);
   const [ventasCanal, setVentasCanal]   = useState<VentasPorCanal[]>([]);
   const [metricaCanal, setMetricaCanal] = useState<MetricaCanal>("ingresosTotal");
+  const [carritoEventos, setCarritoEventos] = useState<CarritoEventos | null>(null);
 
   const rol = user?.rol;
 
@@ -180,35 +182,40 @@ export default function IndicadoresTab({ user }: { user: StoredUser | null }) {
       let urlSerie: string;
       let urlTop: string;
       let urlCanal: string;
+      let urlCarrito: string;
 
       if (effectiveIdMarca) {
         urlMetricas = `/db/marcas/${effectiveIdMarca}/metricas-principales${qs}`;
         urlSerie    = `/db/marcas/${effectiveIdMarca}/metricas-principales/serie${qsSerie}`;
         urlTop      = `/db/marcas/${effectiveIdMarca}/top-productos${qsTop}`;
         urlCanal = `/db/marcas/${effectiveIdMarca}/ventas-por-canal${qs}`;
+        urlCarrito  = `/db/marcas/${effectiveIdMarca}/carrito-eventos${qs}`;
       } else {
         urlMetricas = `/db/retailers/${effectiveIdRetailer}/metricas-principales${qs}`;
         urlSerie    = `/db/retailers/${effectiveIdRetailer}/metricas-principales/serie${qsSerie}`;
         urlTop      = `/db/retailers/${effectiveIdRetailer}/top-productos${qsTop}`;
         urlCanal = `/db/retailers/${effectiveIdRetailer}/ventas-por-canal${qs}`;
+        urlCarrito  = `/db/retailers/${effectiveIdRetailer}/carrito-eventos${qs}`;
       }
 
-      const [rM, rS, rT, rC] = await Promise.all([
+      const [rM, rS, rT, rC, rCar] = await Promise.all([
         apiFetch(urlMetricas),
         apiFetch(urlSerie),
         apiFetch(urlTop),
         apiFetch(urlCanal),
+        apiFetch(urlCarrito),
       ]);
 
-      if (!rM.ok || !rS.ok || !rT.ok || !rC.ok) throw new Error("Error al cargar los datos.");
+      if (!rM.ok || !rS.ok || !rT.ok || !rC.ok || !rCar.ok) throw new Error("Error al cargar los datos.");
 
-      const [dataM, dataS, dataT, dataC]: [MainMetrics, MetricasPeriodo[], TopProducto[], VentasPorCanal[]] =
-        await Promise.all([rM.json(), rS.json(), rT.json(), rC.json(), ]);
+      const [dataM, dataS, dataT, dataC, dataCar]: [MainMetrics, MetricasPeriodo[], TopProducto[], VentasPorCanal[], CarritoEventos] =
+        await Promise.all([rM.json(), rS.json(), rT.json(), rC.json(), rCar.json()]);
 
       setMetricas(dataM);
       setSerie(dataS);
       setTopProductos(dataT);
       setVentasCanal(dataC);
+      setCarritoEventos(dataCar);
     } catch (e) {
       setError((e as Error).message ?? "Error desconocido.");
     } finally {
@@ -350,6 +357,18 @@ export default function IndicadoresTab({ user }: { user: StoredUser | null }) {
             ? formatCLP(metricas.ingresosTotal / metricas.totalTransacciones)
             : "—"}
           sub="Ingreso por transacción"
+        />
+        <KpiCard
+          label="Agregados al carrito de compras"
+          value={carritoEventos ? formatNum(carritoEventos.agregarCarro) : "—"}
+          sub="Eventos agregar_carro en el período"
+        />
+        <KpiCard
+          label="Quitados del carrito de compras"
+          value={carritoEventos ? formatNum(carritoEventos.quitarCarro) : "—"}
+          sub={carritoEventos && carritoEventos.agregarCarro > 0
+            ? `Retención: ${(((carritoEventos.agregarCarro - carritoEventos.quitarCarro) / carritoEventos.agregarCarro) * 100).toFixed(1)}%`
+            : "Sin datos de retención"}
         />
       </section>
 
