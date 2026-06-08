@@ -1,6 +1,8 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useRouter } from "next/router";
 import Sidebar from "../../components/Sidebar";
+import InsightsChatWidget from "../../components/InsightsChatWidget";
+import { StoredUser } from "../../components/InsightsChat";
 import { apiFetch } from "../../lib/api";
 import {
   LineChart,
@@ -65,6 +67,98 @@ function getSixMonthsAgo(): string {
   return d.toISOString().slice(0, 10);
 }
 
+// Construye el contexto textual que recibe Gemini. Sólo incluye datos
+// realmente disponibles en la vista; nunca inventa valores.
+function buildProductoContexto(args: {
+  nombreProducto: string;
+  idProducto: string;
+  idMarca: number | null;
+  idRetailer: number | null;
+  desde: string;
+  hasta: string;
+  agruparLabel: string;
+  loading: boolean;
+  error: string | null;
+  metricas: MetricasAgregadas | null;
+  serie: MetricasPeriodo[];
+  precioProm: number | null;
+  promedio: number;
+}): string {
+  const {
+    nombreProducto, idProducto, idMarca, idRetailer, desde, hasta,
+    agruparLabel, loading, error, metricas, serie, precioProm, promedio,
+  } = args;
+
+  const lineas: string[] = [];
+
+  lineas.push(
+    "Eres un asistente de análisis de datos comerciales dentro de un panel de Insights. " +
+    "Tu rol es exclusivamente responder preguntas y analizar el desempeño del producto " +
+    "descrito a continuación. NO puedes editar, crear, eliminar ni modificar el producto " +
+    "ni ningún dato: sólo analizar y responder. Básate únicamente en los datos provistos; " +
+    "si un dato no está disponible, dilo claramente y no lo inventes. Responde en español."
+  );
+
+  lineas.push("\n=== DATOS DEL PRODUCTO ===");
+  lineas.push(`Nombre: ${nombreProducto || `Producto #${idProducto}`}`);
+  lineas.push(`ID Producto: ${idProducto}`);
+  if (idMarca != null) lineas.push(`ID Marca: ${idMarca}`);
+  if (idRetailer != null) lineas.push(`ID Retailer: ${idRetailer}`);
+  lineas.push(`Período analizado: ${desde} a ${hasta} (agrupado por ${agruparLabel})`);
+
+  if (loading) {
+    lineas.push("\nEstado: los datos aún se están cargando. Indica al usuario que espere un momento.");
+    return lineas.join("\n");
+  }
+  if (error) {
+    lineas.push(`\nEstado: ocurrió un error al cargar los datos (${error}). No hay estadísticas disponibles.`);
+    return lineas.join("\n");
+  }
+
+  const sinMetricas = !metricas || (metricas.ingresosTotal === 0 && metricas.unidadesVendidas === 0);
+  const sinSerie = serie.length === 0;
+
+  if (sinMetricas && sinSerie) {
+    lineas.push(
+      "\nEstado: este producto no tiene información de ventas suficiente en el período " +
+      "seleccionado. Indícalo al usuario y sugiere ampliar el rango de fechas; no inventes cifras."
+    );
+    return lineas.join("\n");
+  }
+
+  lineas.push("\n=== MÉTRICAS AGREGADAS ===");
+  if (metricas) {
+    lineas.push(`Ingresos totales: ${formatCLP(metricas.ingresosTotal)}`);
+    lineas.push(`Unidades vendidas: ${formatNum(metricas.unidadesVendidas)}`);
+  }
+  if (precioProm != null) lineas.push(`Precio promedio por unidad: ${formatCLP(precioProm)}`);
+  if (serie.length > 0) {
+    lineas.push(`Ingreso promedio por período: ${formatCLP(promedio)}`);
+    lineas.push(`Períodos analizados: ${serie.length}`);
+  }
+
+  if (serie.length > 0) {
+    lineas.push("\n=== DETALLE POR PERÍODO ===");
+    lineas.push("Período | Ingresos | Unidades | Precio prom.");
+    for (const row of serie) {
+      const pp = row.unidadesVendidas > 0
+        ? formatCLP(Math.round(row.ingresosTotal / row.unidadesVendidas))
+        : "—";
+      lineas.push(
+        `${row.periodo} | ${formatCLP(row.ingresosTotal)} | ${formatNum(row.unidadesVendidas)} | ${pp}`
+      );
+    }
+  }
+
+  return lineas.join("\n");
+}
+
+const PRODUCTO_SUGERENCIAS = [
+  "¿Qué conclusiones se pueden obtener de su desempeño?",
+  "¿Cómo han evolucionado sus ventas?",
+  "¿Qué recomendaciones se pueden obtener a partir de sus datos?",
+];
+
 //Sub-componentes
 
 function KpiCard({
@@ -127,6 +221,7 @@ export default function ProductoDashboard() {
   const [idMarca, setIdMarca] = useState<number | null>(null);
   const [idRetailer, setIdRetailer] = useState<number | null>(null);
   const [userName, setUserName] = useState("Usuario");
+  const [chatUser, setChatUser] = useState<StoredUser | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [nombreProducto, setNombreProducto] = useState("");
 
@@ -168,6 +263,7 @@ export default function ProductoDashboard() {
       return;
     }
     const user = JSON.parse(stored);
+    setChatUser(user);
     setUserName(user.nombre ?? "Usuario");
     setIdMarca(user.idMarcaProducto ?? user.idMarca ?? null);
     setIdRetailer(user.idRetailerSeleccionado ?? user.idRetailer ?? null);
@@ -237,6 +333,31 @@ export default function ProductoDashboard() {
     mes: "meses",
     año: "años",
   };
+
+  // Contexto para Gemini: se reconstruye cuando cambia el producto, los
+  // filtros o los datos, de modo que la IA siempre recibe el estado actual.
+  const contextoProducto = useMemo(
+    () =>
+      buildProductoContexto({
+        nombreProducto,
+        idProducto: String(idProducto ?? ""),
+        idMarca,
+        idRetailer,
+        desde,
+        hasta,
+        agruparLabel: agruparPorLabel[agruparPor],
+        loading,
+        error,
+        metricas,
+        serie,
+        precioProm,
+        promedio,
+      }),
+    [
+      nombreProducto, idProducto, idMarca, idRetailer, desde, hasta,
+      agruparPor, loading, error, metricas, serie, precioProm, promedio,
+    ]
+  );
 
   // Render de la pág
   return (
@@ -544,6 +665,15 @@ export default function ProductoDashboard() {
 
         </div>
       </main>
+
+      {/* Widget de chat con IA, mismo componente que en Insights, ahora con
+          el contexto del producto seleccionado. */}
+      <InsightsChatWidget
+        user={chatUser}
+        contexto={contextoProducto}
+        suggestions={PRODUCTO_SUGERENCIAS}
+        title={`Asistente IA · ${nombreProducto || `Producto #${idProducto}`}`}
+      />
     </div>
   );
 }
