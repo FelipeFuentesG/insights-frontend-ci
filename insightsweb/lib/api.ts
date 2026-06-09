@@ -144,3 +144,16 @@ export async function fetchSegmentosCompra(idMarca: string): Promise<SegmentosCo
   if (!res.ok) throw new Error("Error al cargar los segmentos de compra.");
   return res.json();
 }
+
+export async function limpiarSegmentosCompra(
+  idMarca: string
+): Promise<{ clientesActualizados: number }> {
+  const res = await apiFetch(`/db/marcas/${idMarca}/segmentos-compra/asignaciones`, {
+    method: "DELETE",
+  });
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(body || "Error al limpiar los segmentos.");
+  }
+  return res.json();
+}

@@ -7,6 +7,7 @@ import {
   ClienteResumen,
   fetchSegmentosCompra,
   SegmentosCompra,
+  limpiarSegmentosCompra,
 } from "../../lib/api";
 import {
   PieChart,
@@ -40,7 +41,7 @@ interface MarcaResumen {
 }
 
 type SegmentoTab = "sociodemografico" | "compras";
-type Dimension = "edad" | "genero" | "comuna";
+type Dimension = "edad" | "genero" | "region";
 
 interface SliceDatum {
   name: string;
@@ -68,9 +69,73 @@ function bucketEdad(edad: number): string {
   return b ? b.label : "Sin dato";
 }
 
+// Mapeo de comunas chilenas a sus regiones.
+const COMUNA_TO_REGION: Record<string, string> = {
+  // Región Metropolitana
+  "Las Condes": "Metropolitana",
+  "Providencia": "Metropolitana",
+  "Ñuñoa": "Metropolitana",
+  "Nunoa": "Metropolitana",
+  "Santiago": "Metropolitana",
+  "La Florida": "Metropolitana",
+  "Maipú": "Metropolitana",
+  "Maipu": "Metropolitana",
+  "Puente Alto": "Metropolitana",
+  "San Bernardo": "Metropolitana",
+  "Vitacura": "Metropolitana",
+  "La Reina": "Metropolitana",
+  "Peñalolén": "Metropolitana",
+  "Penalolen": "Metropolitana",
+  "Macul": "Metropolitana",
+  "San Miguel": "Metropolitana",
+  // Valparaíso
+  "Viña del Mar": "Valparaíso",
+  "Vina del Mar": "Valparaíso",
+  "Valparaíso": "Valparaíso",
+  "Valparaiso": "Valparaíso",
+  "Quilpué": "Valparaíso",
+  "Quilpue": "Valparaíso",
+  "Villa Alemana": "Valparaíso",
+  // Biobío
+  "Concepción": "Biobío",
+  "Concepcion": "Biobío",
+  "Talcahuano": "Biobío",
+  "Los Ángeles": "Biobío",
+  "Los Angeles": "Biobío",
+  // Antofagasta
+  "Antofagasta": "Antofagasta",
+  "Calama": "Antofagasta",
+  // La Araucanía
+  "Temuco": "La Araucanía",
+  "Padre Las Casas": "La Araucanía",
+  // Otras
+  "La Serena": "Coquimbo",
+  "Coquimbo": "Coquimbo",
+  "Iquique": "Tarapacá",
+  "Arica": "Arica y Parinacota",
+  "Copiapó": "Atacama",
+  "Copiapo": "Atacama",
+  "Rancagua": "O'Higgins",
+  "Talca": "Maule",
+  "Chillán": "Ñuble",
+  "Chillan": "Ñuble",
+  "Valdivia": "Los Ríos",
+  "Puerto Montt": "Los Lagos",
+  "Coyhaique": "Aysén",
+  "Punta Arenas": "Magallanes",
+};
+
+function comunaToRegion(comuna: string | null | undefined): string {
+  if (!comuna) return "Sin dato";
+  const trimmed = comuna.trim();
+  if (!trimmed) return "Sin dato";
+  return COMUNA_TO_REGION[trimmed] ?? "Otra";
+}
+
 function aggregate(
   clientes: ClienteResumen[],
-  dimension: Dimension
+  dimension: Dimension,
+  regionEspecifica: boolean
 ): SliceDatum[] {
   const counts = new Map<string, number>();
 
@@ -80,8 +145,11 @@ function aggregate(
       key = c.edad == null ? "Sin dato" : bucketEdad(Number(c.edad));
     } else if (dimension === "genero") {
       key = (c.genero ?? "").trim() || "Sin dato";
-    } else {
+    } else if (regionEspecifica) {
+      // Si hay región filtrada, mostrar distribución por comuna dentro de esa región.
       key = (c.comuna ?? "").trim() || "Sin dato";
+    } else {
+      key = comunaToRegion(c.comuna);
     }
     counts.set(key, (counts.get(key) ?? 0) + 1);
   }
@@ -178,6 +246,7 @@ export default function SegmentosPage() {
   // Tab y dimensión
   const [tab, setTab] = useState<SegmentoTab>("sociodemografico");
   const [dimension, setDimension] = useState<Dimension>("edad");
+  const [regionFiltro, setRegionFiltro] = useState<string>("__todas__");
 
   // Datos
   const [clientes, setClientes] = useState<ClienteResumen[]>([]);
@@ -187,6 +256,7 @@ export default function SegmentosPage() {
   // Segmentos de compra
   const [segmentos, setSegmentos] = useState<SegmentosCompra | null>(null);
   const [loadingSeg, setLoadingSeg] = useState(false);
+  const [limpiandoSeg, setLimpiandoSeg] = useState(false);
 
   // Layout responsive
   const chartContainerRef = useRef<HTMLDivElement>(null);
@@ -284,6 +354,29 @@ export default function SegmentosPage() {
     fetchSegmentos();
   }, [fetchSegmentos]);
 
+  // ── Limpiar segmentos (solo admin global y admin_retailer) ─────────────────
+  const handleLimpiarSegmentos = useCallback(async () => {
+    if (!effectiveIdMarca) return;
+    const ok = window.confirm(
+      "¿Limpiar todos los segmentos de esta marca?\n\n" +
+      "Los clientes quedarán sin segmento asignado (id_cluster = NULL). " +
+      "Los segmentos en sí no se eliminan, pero quedarán vacíos hasta " +
+      "una nueva recalculación.\n\nEsta acción no se puede deshacer."
+    );
+    if (!ok) return;
+
+    setLimpiandoSeg(true);
+    setError(null);
+    try {
+      await limpiarSegmentosCompra(String(effectiveIdMarca));
+      await fetchSegmentos();
+    } catch (e) {
+      setError((e as Error).message ?? "Error al limpiar segmentos.");
+    } finally {
+      setLimpiandoSeg(false);
+    }
+  }, [effectiveIdMarca, fetchSegmentos]);
+
   // ── Derivados ──────────────────────────────────────────────────────────────
   const initials = (user?.nombre ?? "U")
     .split(" ")
@@ -292,23 +385,40 @@ export default function SegmentosPage() {
     .join("")
     .toUpperCase();
 
+  const regionesDisponibles = useMemo(() => {
+    const set = new Set<string>();
+    for (const c of clientes) {
+      set.add(comunaToRegion(c.comuna));
+    }
+    return Array.from(set).sort((a, b) => a.localeCompare(b, "es"));
+  }, [clientes]);
+
+  const clientesFiltrados = useMemo(() => {
+    if (regionFiltro === "__todas__") return clientes;
+    return clientes.filter((c) => comunaToRegion(c.comuna) === regionFiltro);
+  }, [clientes, regionFiltro]);
+
+  const regionEspecifica = regionFiltro !== "__todas__";
+
   const sliceData = useMemo(
     () =>
-      aggregate(clientes, dimension).map((d, i) => ({
+      aggregate(clientesFiltrados, dimension, regionEspecifica).map((d, i) => ({
         ...d,
         fill: PIE_COLORS[i % PIE_COLORS.length],
       })),
-    [clientes, dimension]
+    [clientesFiltrados, dimension, regionEspecifica]
   );
 
-  const totalClientes = clientes.length;
+  const totalClientes = clientesFiltrados.length;
   const valoresUnicos = sliceData.length;
   const topSegmento = sliceData[0];
 
+  // Cuando la dimensión es "región" pero hay un filtro de región activo,
+  // mostramos comunas dentro de esa región.
   const dimensionLabel: Record<Dimension, string> = {
     edad: "Edad",
     genero: "Género",
-    comuna: "Comuna",
+    region: dimension === "region" && regionEspecifica ? "Comuna" : "Región",
   };
 
   const SIN_SEGMENTO_COLOR = "#cbd5e1";
@@ -473,6 +583,57 @@ export default function SegmentosPage() {
 
               {tab === "sociodemografico" && (
                 <>
+                  {/* Filtro de región */}
+                  <section className="pd-card" style={{ padding: "12px 16px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
+                      <label
+                        htmlFor="region-filtro"
+                        style={{ fontSize: "13px", fontWeight: 600, color: "#374151" }}
+                      >
+                        Filtrar por región
+                      </label>
+                      <select
+                        id="region-filtro"
+                        value={regionFiltro}
+                        onChange={(e) => setRegionFiltro(e.target.value)}
+                        disabled={loading || regionesDisponibles.length === 0}
+                        style={{
+                          padding: "8px 12px",
+                          borderRadius: "8px",
+                          border: "1px solid #d1d5db",
+                          background: "#ffffff",
+                          fontSize: "13px",
+                          color: "#111827",
+                          minWidth: "200px",
+                          cursor: loading ? "not-allowed" : "pointer",
+                        }}
+                      >
+                        <option value="__todas__">Todas las regiones</option>
+                        {regionesDisponibles.map((r) => (
+                          <option key={r} value={r}>
+                            {r}
+                          </option>
+                        ))}
+                      </select>
+                      {regionFiltro !== "__todas__" && (
+                        <button
+                          onClick={() => setRegionFiltro("__todas__")}
+                          style={{
+                            padding: "6px 12px",
+                            borderRadius: "6px",
+                            border: "1px solid #e5e7eb",
+                            background: "#f9fafb",
+                            fontSize: "12px",
+                            color: "#6b7280",
+                            cursor: "pointer",
+                          }}
+                        >
+                          Limpiar filtro
+                        </button>
+                      )}
+                    </div>
+                  </section>
+
                   {/* KPIs */}
                   <section className="pd-kpi-row">
                     <KpiCard
@@ -510,7 +671,7 @@ export default function SegmentosPage() {
                         options={[
                           { value: "edad", label: "Edad" },
                           { value: "genero", label: "Género" },
-                          { value: "comuna", label: "Comuna" },
+                          { value: "region", label: "Región" },
                         ]}
                         value={dimension}
                         onChange={setDimension}
@@ -605,6 +766,71 @@ export default function SegmentosPage() {
 
               {tab === "compras" && (
                 <>
+                  {/* Acciones de mantenimiento (solo admin global y retailer) */}
+                  {(user?.rol === "admin_global_andesml" ||
+                    user?.rol === "admin_retailer") && (
+                    <section className="pd-card" style={{ padding: "12px 16px" }}>
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          gap: "12px",
+                          flexWrap: "wrap",
+                        }}
+                      >
+                        <div>
+                          <p
+                            style={{
+                              margin: 0,
+                              fontSize: "13px",
+                              fontWeight: 600,
+                              color: "#374151",
+                            }}
+                          >
+                            Mantenimiento de segmentos
+                          </p>
+                          <p
+                            style={{
+                              margin: "4px 0 0 0",
+                              fontSize: "12px",
+                              color: "#6b7280",
+                            }}
+                          >
+                            Desasigna a todos los clientes de su segmento de compra actual.
+                          </p>
+                        </div>
+                        <button
+                          onClick={handleLimpiarSegmentos}
+                          disabled={
+                            limpiandoSeg ||
+                            loadingSeg ||
+                            !segmentos ||
+                            segmentos.totalClientes - segmentos.clientesSinSegmento === 0
+                          }
+                          style={{
+                            padding: "8px 16px",
+                            borderRadius: "8px",
+                            border: "1px solid #ef4444",
+                            background: limpiandoSeg ? "#fca5a5" : "#ffffff",
+                            color: "#ef4444",
+                            fontSize: "13px",
+                            fontWeight: 600,
+                            cursor:
+                              limpiandoSeg || loadingSeg ? "not-allowed" : "pointer",
+                            opacity:
+                              !segmentos ||
+                              segmentos.totalClientes - segmentos.clientesSinSegmento === 0
+                                ? 0.5
+                                : 1,
+                          }}
+                        >
+                          {limpiandoSeg ? "Limpiando…" : "Limpiar segmentos"}
+                        </button>
+                      </div>
+                    </section>
+                  )}
+
                   {/* KPIs */}
                   <section className="pd-kpi-row">
                     <KpiCard
