@@ -44,6 +44,7 @@ const NAV_ITEMS: NavItem[] = [
     chevron: true,
     children: [
       { label: "Productos con Bajo Rendimiento", href: "/rendimiento" },
+      { label: "Gaps de Rentabilidad", href: "/gaps-rentabilidad" },
     ],
   },
   { label: "Gestión de la Plataforma", imgSrc: "/campaign.svg", roles: ["admin_global_andesml"] },
