@@ -146,7 +146,7 @@ export default function Sidebar() {
                   {visibleChildren.map((child) => (
                     <button
                       key={child.label}
-                      className={`home-sidebar-subitem${isActive(child.href) ? " active" : ""}`}
+                      className={`home-sidebar-subitem${router.pathname === child.href ? " active" : ""}`}
                       onClick={() => { if (child.href) router.push(child.href); }}
                     >
                       <span className="home-sidebar-subitem-dot" />
