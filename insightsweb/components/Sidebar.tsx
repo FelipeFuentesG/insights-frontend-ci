@@ -44,7 +44,7 @@ const NAV_ITEMS: NavItem[] = [
     chevron: true,
     children: [
       { label: "Productos con Bajo Rendimiento", href: "/rendimiento" },
-      { label: "Gaps de Rentabilidad", href: "/gaps-rentabilidad" },
+      { label: "Gaps de Rentabilidad", href: "/rendimiento/gaps-rentabilidad" },
     ],
   },
   { label: "Gestión de la Plataforma", imgSrc: "/campaign.svg", roles: ["admin_global_andesml"] },
@@ -98,7 +98,7 @@ export default function Sidebar() {
       </div>
 
       <nav className="home-sidebar-nav">
-        {NAV_ITEMS.filter((item) => canSee(item.roles)).map(({ label, imgSrc, href, chevron, children, roles }) => {
+        {NAV_ITEMS.filter((item) => canSee(item.roles)).map(({ label, imgSrc, href, chevron, children }) => {
           const visibleChildren = children?.filter((c) => canSee(c.roles));
           const active = isActive(href) || (visibleChildren?.some((c) => isActive(c.href)) ?? false);
           const open = openMenus[label] ?? false;
