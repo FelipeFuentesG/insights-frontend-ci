@@ -139,8 +139,12 @@ export interface SegmentosCompra {
   totalClientes: number;
 }
 
-export async function fetchSegmentosCompra(idMarca: string): Promise<SegmentosCompra> {
-  const res = await apiFetch(`/db/marcas/${idMarca}/segmentos-compra`);
+export async function fetchSegmentosCompra(
+  idMarca: string,
+  refresh = false
+): Promise<SegmentosCompra> {
+  const path = `/db/marcas/${idMarca}/segmentos-compra${refresh ? "?refresh=true" : ""}`;
+  const res = await apiFetch(path);
   if (!res.ok) throw new Error("Error al cargar los segmentos de compra.");
   return res.json();
 }

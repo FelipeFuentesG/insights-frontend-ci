@@ -336,19 +336,22 @@ export default function SegmentosPage() {
   }, [fetchData]);
 
   // ── Fetch segmentos de compra por marca ────────────────────────────────────
-  const fetchSegmentos = useCallback(async () => {
-    if (!effectiveIdMarca) return;
-    setLoadingSeg(true);
-    setError(null);
-    try {
-      const data = await fetchSegmentosCompra(String(effectiveIdMarca));
-      setSegmentos(data);
-    } catch (e) {
-      setError((e as Error).message ?? "Error desconocido.");
-    } finally {
-      setLoadingSeg(false);
-    }
-  }, [effectiveIdMarca]);
+  const fetchSegmentos = useCallback(
+    async (forceRefresh = false) => {
+      if (!effectiveIdMarca) return;
+      setLoadingSeg(true);
+      setError(null);
+      try {
+        const data = await fetchSegmentosCompra(String(effectiveIdMarca), forceRefresh);
+        setSegmentos(data);
+      } catch (e) {
+        setError((e as Error).message ?? "Error desconocido.");
+      } finally {
+        setLoadingSeg(false);
+      }
+    },
+    [effectiveIdMarca]
+  );
 
   useEffect(() => {
     fetchSegmentos();
@@ -369,7 +372,7 @@ export default function SegmentosPage() {
     setError(null);
     try {
       await limpiarSegmentosCompra(String(effectiveIdMarca));
-      await fetchSegmentos();
+      await fetchSegmentos(true);
     } catch (e) {
       setError((e as Error).message ?? "Error al limpiar segmentos.");
     } finally {
@@ -425,11 +428,13 @@ export default function SegmentosPage() {
 
   const segChartData = useMemo(() => {
     if (!segmentos) return [];
-    const data = segmentos.segmentos.map((s, i) => ({
-      name: s.nombre ?? `Segmento ${s.idCluster}`,
-      value: s.totalClientes,
-      fill: PIE_COLORS[i % PIE_COLORS.length],
-    }));
+    const data = segmentos.segmentos
+      .filter((s) => s.totalClientes > 0)
+      .map((s, i) => ({
+        name: s.nombre ?? `Segmento ${s.idCluster}`,
+        value: s.totalClientes,
+        fill: PIE_COLORS[i % PIE_COLORS.length],
+      }));
     if (segmentos.clientesSinSegmento > 0) {
       data.push({
         name: "Sin segmento",
