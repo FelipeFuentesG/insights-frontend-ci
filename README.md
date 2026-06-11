@@ -14,7 +14,6 @@ echo 'export NVM_DIR="$HOME/.nvm"' >> ~/.zshrc
 echo '[ -s "/opt/homebrew/opt/nvm/nvm.sh" ] && \. "/opt/homebrew/opt/nvm/nvm.sh"' >> ~/.zshrc
 source ~/.zshrc
 nvm install 20 && nvm use 20 && nvm alias default 20
-npm install -g yarn
 ```
 > Si no tienes Homebrew: `/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"`
 
@@ -24,11 +23,10 @@ sudo apt update && sudo apt install -y git curl
 curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash
 source ~/.bashrc
 nvm install 20 && nvm use 20 && nvm alias default 20
-npm install -g yarn
 ```
 > Si no tienes WSL2: abre PowerShell como administrador y ejecuta `wsl --install`, luego reinicia.
 
-Verifica: `node -v` → `v20.x.x` | `yarn -v` → `1.22.x`
+Verifica: `node -v` → `v20.x.x` | `npm -v` → `10.x.x`
 
 ---
 
@@ -54,17 +52,17 @@ El archivo debe quedar en `insightsweb/.env.local`.
 ## 4. Instalar dependencias
 
 ```bash
-yarn install
+npm install
 ```
 
-La primera vez tarda 1–3 minutos. Debe terminar con `Done in X.XXs.` sin errores.
+La primera vez tarda 1–3 minutos. Debe terminar sin errores.
 
 ---
 
 ## 5. Ejecutar
 
 ```bash
-yarn dev
+npm run dev
 ```
 
 El frontend está listo cuando veas:
@@ -81,12 +79,11 @@ Abre **http://localhost:3000** en tu navegador.
 
 | Síntoma | Solución |
 |---------|----------|
-| `yarn: command not found` | `npm install -g yarn` y luego `source ~/.zshrc` / `source ~/.bashrc` |
 | `node: command not found` | `source ~/.zshrc` (Mac) o `source ~/.bashrc` (Ubuntu) |
-| `Cannot find module` | `yarn install` desde dentro de `insightsweb/` |
+| `Cannot find module` | `npm install` desde dentro de `insightsweb/` |
 | Datos no cargan en el navegador | Verifica que el backend esté corriendo en `http://localhost:8080` |
-| Puerto 3000 en uso | `yarn dev -- --port 3001` o `kill $(lsof -ti:3000)` |
-| Errores de permisos en `yarn install` | Mueve el proyecto a `~/` dentro de Ubuntu, no trabajes en `/mnt/c/` |
+| Puerto 3000 en uso | `npm run dev -- --port 3001` o `kill $(lsof -ti:3000)` |
+| Errores de permisos en `npm install` | Mueve el proyecto a `~/` dentro de Ubuntu, no trabajes en `/mnt/c/` |
 
 ---
 
