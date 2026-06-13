@@ -1,5 +1,14 @@
 import { useState, useEffect, useCallback } from "react";
-import { apiFetch, fetchComportamientoCompra, RfmMetrics } from "../lib/api";
+import {
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+} from "recharts";
+import {
+  apiFetch,
+  fetchComportamientoCompra,
+  fetchComportamientoCompraSerie,
+  RfmMetrics,
+  RfmPeriodo,
+} from "../lib/api";
 
 type Rol = "admin_marca" | "admin_retailer" | "admin_global_andesml";
 
@@ -17,6 +26,8 @@ interface StoredUser {
 interface RetailerResumen { idRetailer: number; nombre: string; }
 interface MarcaResumen { idMarca: number; nombre: string; idRetailer: number; }
 
+type AgruparPor = "dia" | "semana" | "mes" | "año";
+
 function getIsoToday() { return new Date().toISOString().slice(0, 10); }
 function getSixMonthsAgo() {
   const d = new Date();
@@ -31,6 +42,9 @@ function formatFrecuencia(v: number) {
 }
 function formatCLP(v: number) {
   return new Intl.NumberFormat("es-CL", { style: "currency", currency: "CLP", maximumFractionDigits: 0 }).format(v);
+}
+function formatCLPCompact(v: number) {
+  return "$" + new Intl.NumberFormat("es-CL", { notation: "compact", maximumFractionDigits: 1 }).format(v);
 }
 
 function KpiCard({ label, value }: { label: string; value: string }) {
@@ -63,8 +77,10 @@ export default function PerfilTab({ user }: { user: StoredUser | null }) {
 
   const [desde, setDesde] = useState(getSixMonthsAgo());
   const [hasta, setHasta] = useState(getIsoToday());
+  const [agruparPor, setAgruparPor] = useState<AgruparPor>("mes");
 
   const [datos, setDatos] = useState<RfmMetrics | null>(null);
+  const [serie, setSerie] = useState<RfmPeriodo[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -117,14 +133,22 @@ export default function PerfilTab({ user }: { user: StoredUser | null }) {
     const id = effectiveIdMarca ?? effectiveIdRetailer!;
 
     try {
-      const data = await fetchComportamientoCompra(tipo, id, desde, hasta);
-      setDatos(data);
+      const [rMetricas, rSerie] = await Promise.allSettled([
+        fetchComportamientoCompra(tipo, id, desde, hasta),
+        fetchComportamientoCompraSerie(tipo, id, desde, hasta, agruparPor),
+      ]);
+
+      if (rMetricas.status === "rejected") {
+        throw new Error((rMetricas.reason as Error).message ?? "Error al cargar métricas.");
+      }
+      setDatos(rMetricas.value);
+      setSerie(rSerie.status === "fulfilled" ? rSerie.value : []);
     } catch (e) {
       setError((e as Error).message ?? "Error desconocido.");
     } finally {
       setLoading(false);
     }
-  }, [effectiveIdMarca, effectiveIdRetailer, desde, hasta]);
+  }, [effectiveIdMarca, effectiveIdRetailer, desde, hasta, agruparPor]);
 
   useEffect(() => { fetchDatos(); }, [fetchDatos]);
 
@@ -176,6 +200,17 @@ export default function PerfilTab({ user }: { user: StoredUser | null }) {
             onChange={e => setHasta(e.target.value)} />
         </div>
 
+        <div className="ind-filter-group">
+          <label className="ind-filter-label">Agrupar por</label>
+          <select className="ind-filter-input" value={agruparPor}
+            onChange={e => setAgruparPor(e.target.value as AgruparPor)}>
+            <option value="dia">Día</option>
+            <option value="semana">Semana</option>
+            <option value="mes">Mes</option>
+            <option value="año">Año</option>
+          </select>
+        </div>
+
         <button className="ind-apply-btn" onClick={fetchDatos} disabled={loading}>
           {loading ? "Cargando…" : "Aplicar"}
         </button>
@@ -203,6 +238,52 @@ export default function PerfilTab({ user }: { user: StoredUser | null }) {
           value={datos ? formatCLP(datos.ticketPromedio) : "—"}
         />
       </section>
+
+      {loading && <div className="ind-skeleton" style={{ height: 80 }} />}
+
+      {!loading && serie.length > 0 && (
+        <section className="ind-card">
+          <div className="ind-card-header">
+            <h2 className="ind-card-title">Evolución del ticket promedio</h2>
+          </div>
+          <div className="ind-chart-area">
+            <ResponsiveContainer width="100%" height={260}>
+              <LineChart data={serie} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                <XAxis dataKey="periodo" tick={{ fontSize: 12, fill: "#6b7280" }} axisLine={false} tickLine={false} />
+                <YAxis tickFormatter={formatCLPCompact} tick={{ fontSize: 11, fill: "#6b7280" }} axisLine={false} tickLine={false} width={72} />
+                <Tooltip
+                  formatter={(val) => [formatCLP(Number(val ?? 0)), "Ticket promedio"]}
+                  contentStyle={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: "8px", fontSize: "13px", boxShadow: "0 4px 12px rgba(0,0,0,0.08)" }}
+                />
+                <Line type="monotone" dataKey="ticketPromedio" stroke="#10b981" strokeWidth={2.5} dot={{ r: 4, fill: "#10b981", strokeWidth: 0 }} activeDot={{ r: 6, fill: "#059669" }} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </section>
+      )}
+
+      {!loading && serie.length > 0 && (
+        <section className="ind-card">
+          <div className="ind-card-header">
+            <h2 className="ind-card-title">Evolución de la frecuencia de compra</h2>
+          </div>
+          <div className="ind-chart-area">
+            <ResponsiveContainer width="100%" height={260}>
+              <LineChart data={serie} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                <XAxis dataKey="periodo" tick={{ fontSize: 12, fill: "#6b7280" }} axisLine={false} tickLine={false} />
+                <YAxis tickFormatter={formatFrecuencia} tick={{ fontSize: 11, fill: "#6b7280" }} axisLine={false} tickLine={false} width={56} />
+                <Tooltip
+                  formatter={(val) => [formatFrecuencia(Number(val ?? 0)), "Compras por cliente"]}
+                  contentStyle={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: "8px", fontSize: "13px", boxShadow: "0 4px 12px rgba(0,0,0,0.08)" }}
+                />
+                <Line type="monotone" dataKey="frecuenciaPromedio" stroke="#4f46e5" strokeWidth={2.5} dot={{ r: 4, fill: "#4f46e5", strokeWidth: 0 }} activeDot={{ r: 6, fill: "#4338ca" }} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </section>
+      )}
     </div>
   );
 }

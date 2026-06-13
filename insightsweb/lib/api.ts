@@ -182,3 +182,25 @@ export async function fetchComportamientoCompra(
   if (!res.ok) throw new Error("Error al cargar el comportamiento de compra.");
   return res.json();
 }
+
+export interface RfmPeriodo {
+  periodo: string;
+  frecuenciaPromedio: number;
+  ticketPromedio: number;
+}
+
+export async function fetchComportamientoCompraSerie(
+  tipo: "marca" | "retailer",
+  id: string,
+  desde: string,
+  hasta: string,
+  agruparPor: string
+): Promise<RfmPeriodo[]> {
+  const path =
+    tipo === "marca"
+      ? `/db/marcas/${id}/comportamiento-compra/serie`
+      : `/db/retailers/${id}/comportamiento-compra/serie`;
+  const res = await apiFetch(`${path}?desde=${desde}&hasta=${hasta}&agruparPor=${agruparPor}`);
+  if (!res.ok) throw new Error("Error al cargar la serie de comportamiento de compra.");
+  return res.json();
+}
