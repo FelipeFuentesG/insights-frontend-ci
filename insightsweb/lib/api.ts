@@ -161,3 +161,24 @@ export async function limpiarSegmentosCompra(
   }
   return res.json();
 }
+
+export interface RfmMetrics {
+  recenciaPromedioDias: number;
+  frecuenciaPromedio: number;
+  ticketPromedio: number;
+}
+
+export async function fetchComportamientoCompra(
+  tipo: "marca" | "retailer",
+  id: string,
+  desde: string,
+  hasta: string
+): Promise<RfmMetrics> {
+  const path =
+    tipo === "marca"
+      ? `/db/marcas/${id}/comportamiento-compra/metricas`
+      : `/db/retailers/${id}/comportamiento-compra/metricas`;
+  const res = await apiFetch(`${path}?desde=${desde}&hasta=${hasta}`);
+  if (!res.ok) throw new Error("Error al cargar el comportamiento de compra.");
+  return res.json();
+}

@@ -3,6 +3,7 @@ import { useRouter } from "next/router";
 import Sidebar from "../components/Sidebar";
 import IndicadoresTab from "../components/IndicadoresTab";
 import InteraccionesTab from "../components/InteraccionesTab";
+import PerfilTab from "../components/PerfilTab";
 
 const TABS = ["Indicadores", "Interacciones", "Perfil"];
 
@@ -100,7 +101,7 @@ export default function Home() {
         <div className="home-content">
           {activeTab === 0 && <IndicadoresTab user={user} />}
           {activeTab === 1 && <InteraccionesTab user={user} />}
-          {activeTab === 2 && <div className="home-coming-soon">Sección Perfil en construcción.</div>}
+          {activeTab === 2 && <PerfilTab user={user} />}
         </div>
       </main>
     </div>
