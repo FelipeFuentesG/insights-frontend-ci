@@ -44,6 +44,7 @@ const NAV_ITEMS: NavItem[] = [
     chevron: true,
     children: [
       { label: "Productos con Bajo Rendimiento", href: "/rendimiento" },
+      { label: "Gaps de Rentabilidad", href: "/rendimiento/gaps-rentabilidad" },
     ],
   },
   { label: "Gestión de la Plataforma", imgSrc: "/campaign.svg", roles: ["admin_global_andesml"] },
@@ -97,7 +98,7 @@ export default function Sidebar() {
       </div>
 
       <nav className="home-sidebar-nav">
-        {NAV_ITEMS.filter((item) => canSee(item.roles)).map(({ label, imgSrc, href, chevron, children, roles }) => {
+        {NAV_ITEMS.filter((item) => canSee(item.roles)).map(({ label, imgSrc, href, chevron, children }) => {
           const visibleChildren = children?.filter((c) => canSee(c.roles));
           const active = isActive(href) || (visibleChildren?.some((c) => isActive(c.href)) ?? false);
           const open = openMenus[label] ?? false;
@@ -145,7 +146,7 @@ export default function Sidebar() {
                   {visibleChildren.map((child) => (
                     <button
                       key={child.label}
-                      className={`home-sidebar-subitem${isActive(child.href) ? " active" : ""}`}
+                      className={`home-sidebar-subitem${router.pathname === child.href ? " active" : ""}`}
                       onClick={() => { if (child.href) router.push(child.href); }}
                     >
                       <span className="home-sidebar-subitem-dot" />

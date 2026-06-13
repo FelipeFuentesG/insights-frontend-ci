@@ -51,6 +51,8 @@ interface SliceDatum {
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function formatNum(value: number): string {
+  if (Math.abs(value) >= 1_000_000)
+    return new Intl.NumberFormat("es-CL", { notation: "compact", maximumFractionDigits: 1 }).format(value);
   return new Intl.NumberFormat("es-CL", { maximumFractionDigits: 0 }).format(value);
 }
 
@@ -664,108 +666,109 @@ export default function SegmentosPage() {
                     />
                   </section>
 
-                  {/* Gráfico de torta */}
-                  <section className="pd-card">
-                    <div className="pd-card-header">
-                      <div className="pd-card-header-left">
-                        <h2 className="pd-card-title">
-                          Distribución por {dimensionLabel[dimension].toLowerCase()}
-                        </h2>
-                      </div>
-                      <SegmentedControl<Dimension>
-                        options={[
-                          { value: "edad", label: "Edad" },
-                          { value: "genero", label: "Género" },
-                          { value: "region", label: "Región" },
-                        ]}
-                        value={dimension}
-                        onChange={setDimension}
-                        accent
-                      />
-                    </div>
+                  {/* Gráfico de torta + tabla de detalle lado a lado */}
+                  <div className="ind-two-col">
 
-                    <div className="pd-chart-area" ref={chartContainerRef}>
-                      {loading ? (
-                        <div className="pd-skeleton" />
-                      ) : sliceData.length === 0 ? (
-                        <div className="pd-empty">
-                          <p className="pd-empty-text">
-                            No hay clientes disponibles para esta marca.
-                          </p>
-                        </div>
-                      ) : (
-                        <ResponsiveContainer width="100%" height={360}>
-                          <PieChart>
-                            <Pie
-                              data={sliceData}
-                              dataKey="value"
-                              nameKey="name"
-                              cx="50%"
-                              cy="50%"
-                              outerRadius={120}
-                              innerRadius={60}
-                              paddingAngle={2}
-                              label={({ name, percent }) =>
-                                `${name} (${Math.round((percent ?? 0) * 100)}%)`
-                              }
-                              labelLine={false}
-                            />
-                            <Tooltip
-                              formatter={(v, n) => [formatNum(Number(v ?? 0)), String(n)]}
-                              contentStyle={{
-                                background: "#ffffff",
-                                border: "1px solid #e5e7eb",
-                                borderRadius: "8px",
-                                fontSize: "13px",
-                                boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
-                              }}
-                            />
-                            <Legend
-                              iconType="circle"
-                              wrapperStyle={{ fontSize: "12px", paddingTop: "12px" }}
-                            />
-                          </PieChart>
-                        </ResponsiveContainer>
-                      )}
-                    </div>
-                  </section>
-
-                  {/* Tabla de detalle */}
-                  {!loading && sliceData.length > 0 && (
+                    {/* Donut */}
                     <section className="pd-card">
                       <div className="pd-card-header">
-                        <h2 className="pd-card-title">Detalle por segmento</h2>
-                        <span className="pd-table-count">{sliceData.length} segmentos</span>
+                        <div className="pd-card-header-left">
+                          <h2 className="pd-card-title">
+                            Distribución por {dimensionLabel[dimension].toLowerCase()}
+                          </h2>
+                        </div>
+                        <SegmentedControl<Dimension>
+                          options={[
+                            { value: "edad", label: "Edad" },
+                            { value: "genero", label: "Género" },
+                            { value: "region", label: "Región" },
+                          ]}
+                          value={dimension}
+                          onChange={setDimension}
+                          accent
+                        />
                       </div>
-                      <div className="pd-table-wrapper">
-                        <table className="pd-table">
-                          <thead>
-                            <tr>
-                              <th className="pd-th">{dimensionLabel[dimension]}</th>
-                              <th className="pd-th pd-th--right">Clientes</th>
-                              <th className="pd-th pd-th--right">%</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {sliceData.map((row, i) => (
-                              <tr
-                                key={row.name}
-                                className={`pd-tr${i % 2 !== 0 ? " pd-tr--alt" : ""}`}
-                              >
-                                <td className="pd-td">{row.name}</td>
-                                <td className="pd-td pd-td--right">{formatNum(row.value)}</td>
-                                <td className="pd-td pd-td--right">
-                                  {totalClientes > 0
-                                    ? `${Math.round((row.value / totalClientes) * 100)}%`
-                                    : "—"}
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
+
+                      <div className="pd-chart-area pd-chart-area--sm" ref={chartContainerRef}>
+                        {loading ? (
+                          <div className="pd-skeleton" style={{ height: 240 }} />
+                        ) : sliceData.length === 0 ? (
+                          <div className="pd-empty">
+                            <p className="pd-empty-text">
+                              No hay clientes disponibles para esta marca.
+                            </p>
+                          </div>
+                        ) : (
+                          <ResponsiveContainer width="100%" height={240}>
+                            <PieChart>
+                              <Pie
+                                data={sliceData}
+                                dataKey="value"
+                                nameKey="name"
+                                cx="50%"
+                                cy="50%"
+                                outerRadius={85}
+                                innerRadius={42}
+                                paddingAngle={2}
+                              />
+                              <Tooltip
+                                formatter={(v, n) => [formatNum(Number(v ?? 0)), String(n)]}
+                                contentStyle={{
+                                  background: "#ffffff",
+                                  border: "1px solid #e5e7eb",
+                                  borderRadius: "8px",
+                                  fontSize: "13px",
+                                  boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
+                                }}
+                              />
+                              <Legend
+                                iconType="circle"
+                                wrapperStyle={{ fontSize: "11px", paddingTop: "8px" }}
+                              />
+                            </PieChart>
+                          </ResponsiveContainer>
+                        )}
                       </div>
                     </section>
-                  )}
+
+                    {/* Tabla de detalle */}
+                    {!loading && sliceData.length > 0 && (
+                      <section className="pd-card">
+                        <div className="pd-card-header">
+                          <h2 className="pd-card-title">Detalle por segmento</h2>
+                          <span className="pd-table-count">{sliceData.length} segmentos</span>
+                        </div>
+                        <div className="pd-table-wrapper">
+                          <table className="pd-table">
+                            <thead>
+                              <tr>
+                                <th className="pd-th">{dimensionLabel[dimension]}</th>
+                                <th className="pd-th pd-th--right">Clientes</th>
+                                <th className="pd-th pd-th--right">%</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {sliceData.map((row, i) => (
+                                <tr
+                                  key={row.name}
+                                  className={`pd-tr${i % 2 !== 0 ? " pd-tr--alt" : ""}`}
+                                >
+                                  <td className="pd-td">{row.name}</td>
+                                  <td className="pd-td pd-td--right">{formatNum(row.value)}</td>
+                                  <td className="pd-td pd-td--right">
+                                    {totalClientes > 0
+                                      ? `${Math.round((row.value / totalClientes) * 100)}%`
+                                      : "—"}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </section>
+                    )}
+
+                  </div>
                 </>
               )}
 
@@ -857,56 +860,54 @@ export default function SegmentosPage() {
                     />
                   </section>
 
-                  {/* Gráfico de distribución */}
-                  <section className="pd-card">
-                    <div className="pd-card-header">
-                      <h2 className="pd-card-title">Distribución por segmento de compra</h2>
-                    </div>
-                    <div className="pd-chart-area">
-                      {loadingSeg ? (
-                        <div className="pd-skeleton" />
-                      ) : segChartData.length === 0 ? (
-                        <div className="pd-empty">
-                          <p className="pd-empty-text">
-                            No hay segmentos definidos para esta marca.
-                          </p>
-                        </div>
-                      ) : (
-                        <ResponsiveContainer width="100%" height={360}>
-                          <PieChart>
-                            <Pie
-                              data={segChartData}
-                              dataKey="value"
-                              nameKey="name"
-                              cx="50%"
-                              cy="50%"
-                              outerRadius={120}
-                              innerRadius={60}
-                              paddingAngle={2}
-                              label={({ name, percent }) =>
-                                `${name} (${Math.round((percent ?? 0) * 100)}%)`
-                              }
-                              labelLine={false}
-                            />
-                            <Tooltip
-                              formatter={(v, n) => [formatNum(Number(v ?? 0)), String(n)]}
-                              contentStyle={{
-                                background: "#ffffff",
-                                border: "1px solid #e5e7eb",
-                                borderRadius: "8px",
-                                fontSize: "13px",
-                                boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
-                              }}
-                            />
-                            <Legend
-                              iconType="circle"
-                              wrapperStyle={{ fontSize: "12px", paddingTop: "12px" }}
-                            />
-                          </PieChart>
-                        </ResponsiveContainer>
-                      )}
-                    </div>
-                  </section>
+                  {/* Gráfico de distribución + tarjetas lado a lado */}
+                  <div className="ind-two-col">
+
+                    <section className="pd-card">
+                      <div className="pd-card-header">
+                        <h2 className="pd-card-title">Distribución por segmento de compra</h2>
+                      </div>
+                      <div className="pd-chart-area pd-chart-area--sm">
+                        {loadingSeg ? (
+                          <div className="pd-skeleton" style={{ height: 240 }} />
+                        ) : segChartData.length === 0 ? (
+                          <div className="pd-empty">
+                            <p className="pd-empty-text">
+                              No hay segmentos definidos para esta marca.
+                            </p>
+                          </div>
+                        ) : (
+                          <ResponsiveContainer width="100%" height={240}>
+                            <PieChart>
+                              <Pie
+                                data={segChartData}
+                                dataKey="value"
+                                nameKey="name"
+                                cx="50%"
+                                cy="50%"
+                                outerRadius={85}
+                                innerRadius={42}
+                                paddingAngle={2}
+                              />
+                              <Tooltip
+                                formatter={(v, n) => [formatNum(Number(v ?? 0)), String(n)]}
+                                contentStyle={{
+                                  background: "#ffffff",
+                                  border: "1px solid #e5e7eb",
+                                  borderRadius: "8px",
+                                  fontSize: "13px",
+                                  boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
+                                }}
+                              />
+                              <Legend
+                                iconType="circle"
+                                wrapperStyle={{ fontSize: "11px", paddingTop: "8px" }}
+                              />
+                            </PieChart>
+                          </ResponsiveContainer>
+                        )}
+                      </div>
+                    </section>
 
                   {/* Tarjetas por segmento con descripción */}
                   {!loadingSeg && segmentos && segmentos.segmentos.length > 0 && (
@@ -951,6 +952,8 @@ export default function SegmentosPage() {
                       )}
                     </section>
                   )}
+
+                  </div>{/* /ind-two-col compras */}
                 </>
               )}
             </>

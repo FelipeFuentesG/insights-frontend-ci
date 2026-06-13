@@ -39,6 +39,8 @@ function getSixMonthsAgo() {
   const d = new Date(); d.setMonth(d.getMonth() - 6); return d.toISOString().slice(0, 10);
 }
 function formatNum(v: number) {
+  if (Math.abs(v) >= 1_000_000)
+    return new Intl.NumberFormat("es-CL", { notation: "compact", maximumFractionDigits: 1 }).format(v);
   return new Intl.NumberFormat("es-CL").format(v);
 }
 function formatTiempo(segundos: number): string {
@@ -270,113 +272,121 @@ export default function InteraccionesTab({ user }: { user: StoredUser | null }) 
 
       {error && <div className="ind-error-banner">{error}</div>}
 
-      {/* ── KPIs de interacción ────────────────────────────────────────────── */}
-      <section className="ind-kpi-row">
-        <KpiCard
-          label="Clics"
-          value={datos ? formatNum(datos.clics) : "—"}
-        />
-        <KpiCard
-          label="Visitas"
-          value={datos ? formatNum(datos.visitas) : "—"}
-        />
-        <KpiCard
-          label="Tiempo prom. visualización"
-          value={datos
-            ? (datos.tiempoPromedioVisualizacion > 0
-                ? formatTiempo(datos.tiempoPromedioVisualizacion)
-                : "N/A")
-            : "—"}
-        />
-      </section>
+      {/* ── KPIs + Detalle por período lado a lado ────────────────────────── */}
+      <div className="ind-kpi-side-layout">
 
-      {loading && <div className="ind-skeleton" style={{ height: 80 }} />}
+        <div className="ind-kpi-col">
+          <KpiCard
+            label="Clics"
+            value={loading ? "—" : (datos ? formatNum(datos.clics) : "—")}
+          />
+          <KpiCard
+            label="Visitas"
+            value={loading ? "—" : (datos ? formatNum(datos.visitas) : "—")}
+          />
+          <KpiCard
+            label="Tiempo prom. visualización"
+            value={loading ? "—" : (datos
+              ? (datos.tiempoPromedioVisualizacion > 0
+                  ? formatTiempo(datos.tiempoPromedioVisualizacion)
+                  : "N/A")
+              : "—")}
+          />
+        </div>
 
-      {/* ── Detalle por período ────────────────────────────────────────────── */}
-      {!loading && serie.length > 0 && (
+        {serie.length > 0 && (
+          <section className="ind-card">
+            <div className="ind-card-header">
+              <h2 className="ind-card-title">Detalle por período</h2>
+              <span className="ind-badge">{serie.length} períodos</span>
+            </div>
+            {loading ? (
+              <div className="ind-skeleton" style={{ height: 160 }} />
+            ) : (
+              <div className="ind-table-wrapper">
+                <table className="ind-table">
+                  <thead>
+                    <tr>
+                      <th className="ind-th">Período</th>
+                      <th className="ind-th ind-th--right">Clics</th>
+                      <th className="ind-th ind-th--right">Visitas</th>
+                      <th className="ind-th ind-th--right">Tiempo prom.</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {serie.map((row, i) => (
+                      <tr key={row.periodo} className={`ind-tr${i % 2 !== 0 ? " ind-tr--alt" : ""}`}>
+                        <td className="ind-td ind-td--mono">{row.periodo}</td>
+                        <td className="ind-td ind-td--right">{formatNum(row.clics)}</td>
+                        <td className="ind-td ind-td--right">{formatNum(row.visitas)}</td>
+                        <td className="ind-td ind-td--right">
+                          {row.tiempoPromedioVisualizacion > 0
+                            ? formatTiempo(row.tiempoPromedioVisualizacion)
+                            : "N/A"}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </section>
+        )}
+
+      </div>
+
+      {/* ── Tendencias lado a lado ────────────────────────────────────────── */}
+      <div className="ind-two-col">
+
         <section className="ind-card">
           <div className="ind-card-header">
-            <h2 className="ind-card-title">Detalle por período</h2>
-            <span className="ind-badge">{serie.length} períodos</span>
+            <h2 className="ind-card-title">Tendencia por día de la semana</h2>
           </div>
-          <div className="ind-table-wrapper">
-            <table className="ind-table">
-              <thead>
-                <tr>
-                  <th className="ind-th">Período</th>
-                  <th className="ind-th ind-th--right">Clicks</th>
-                  <th className="ind-th ind-th--right">Visitas</th>
-                  <th className="ind-th ind-th--right">Tiempo prom. viz.</th>
-                </tr>
-              </thead>
-              <tbody>
-                {serie.map((row, i) => (
-                  <tr key={row.periodo} className={`ind-tr${i % 2 !== 0 ? " ind-tr--alt" : ""}`}>
-                    <td className="ind-td ind-td--mono">{row.periodo}</td>
-                    <td className="ind-td ind-td--right">{formatNum(row.clics)}</td>
-                    <td className="ind-td ind-td--right">{formatNum(row.visitas)}</td>
-                    <td className="ind-td ind-td--right">
-                      {row.tiempoPromedioVisualizacion > 0
-                        ? formatTiempo(row.tiempoPromedioVisualizacion)
-                        : "N/A"}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="ind-chart-area ind-chart-area--sm">
+            {loadingTendencia ? (
+              <div className="ind-skeleton" />
+            ) : (
+              <ResponsiveContainer width="100%" height={220}>
+                <BarChart data={dataDias} margin={{ top: 10, right: 16, left: 0, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                  <XAxis dataKey="nombre" tick={{ fontSize: 12, fill: "#6b7280" }} axisLine={false} tickLine={false} />
+                  <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: "#6b7280" }} axisLine={false} tickLine={false} />
+                  <Tooltip
+                    formatter={(val) => [formatNum(Number(val)), "Interacciones"]}
+                    contentStyle={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: "8px", fontSize: "13px", boxShadow: "0 4px 12px rgba(0,0,0,0.08)" }}
+                  />
+                  <Bar dataKey="total" fill="#4f46e5" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
           </div>
         </section>
-      )}
 
-      {/* ── Tendencia por día de la semana ────────────────────────────────── */}
-      <section className="ind-card">
-        <div className="ind-card-header">
-          <h2 className="ind-card-title">Tendencia por día de la semana</h2>
-        </div>
-        <div className="ind-chart-area">
-          {loadingTendencia ? (
-            <div className="ind-skeleton" />
-          ) : (
-            <ResponsiveContainer width="100%" height={260}>
-              <BarChart data={dataDias} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                <XAxis dataKey="nombre" tick={{ fontSize: 12, fill: "#6b7280" }} axisLine={false} tickLine={false} />
-                <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: "#6b7280" }} axisLine={false} tickLine={false} />
-                <Tooltip
-                  formatter={(val) => [Number(val).toLocaleString("es-CL"), "Interacciones"]}
-                  contentStyle={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: "8px", fontSize: "13px", boxShadow: "0 4px 12px rgba(0,0,0,0.08)" }}
-                />
-                <Bar dataKey="total" fill="#4f46e5" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          )}
-        </div>
-      </section>
+        <section className="ind-card">
+          <div className="ind-card-header">
+            <h2 className="ind-card-title">Tendencia por hora del día</h2>
+          </div>
+          <div className="ind-chart-area ind-chart-area--sm">
+            {loadingTendencia ? (
+              <div className="ind-skeleton" />
+            ) : (
+              <ResponsiveContainer width="100%" height={220}>
+                <BarChart data={dataHoras} margin={{ top: 10, right: 16, left: 0, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                  <XAxis dataKey="hora" interval={2} tick={{ fontSize: 11, fill: "#6b7280" }} axisLine={false} tickLine={false} />
+                  <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: "#6b7280" }} axisLine={false} tickLine={false} />
+                  <Tooltip
+                    formatter={(val) => [formatNum(Number(val)), "Interacciones"]}
+                    contentStyle={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: "8px", fontSize: "13px", boxShadow: "0 4px 12px rgba(0,0,0,0.08)" }}
+                  />
+                  <Bar dataKey="total" fill="#0ea5e9" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+        </section>
 
-      {/* ── Tendencia por hora del día ─────────────────────────────────────── */}
-      <section className="ind-card">
-        <div className="ind-card-header">
-          <h2 className="ind-card-title">Tendencia por hora del día</h2>
-        </div>
-        <div className="ind-chart-area">
-          {loadingTendencia ? (
-            <div className="ind-skeleton" />
-          ) : (
-            <ResponsiveContainer width="100%" height={260}>
-              <BarChart data={dataHoras} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                <XAxis dataKey="hora" interval={2} tick={{ fontSize: 11, fill: "#6b7280" }} axisLine={false} tickLine={false} />
-                <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: "#6b7280" }} axisLine={false} tickLine={false} />
-                <Tooltip
-                  formatter={(val) => [Number(val).toLocaleString("es-CL"), "Interacciones"]}
-                  contentStyle={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: "8px", fontSize: "13px", boxShadow: "0 4px 12px rgba(0,0,0,0.08)" }}
-                />
-                <Bar dataKey="total" fill="#0ea5e9" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          )}
-        </div>
-      </section>
+      </div>
 
     </div>
   );

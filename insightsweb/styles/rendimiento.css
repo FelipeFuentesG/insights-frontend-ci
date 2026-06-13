@@ -211,3 +211,19 @@
   0%   { background-position: 200% 0; }
   100% { background-position: -200% 0; }
 }
+
+.rend-tr--danger {
+  background: #fef2f2 !important;
+}
+
+.rend-tr--danger:hover {
+  background: #fee2e2 !important;
+}
+
+.rend-tr--warning {
+  background: #fffbeb !important;
+}
+
+.rend-tr--warning:hover {
+  background: #fef3c7 !important;
+}
