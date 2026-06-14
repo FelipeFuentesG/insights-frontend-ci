@@ -189,6 +189,16 @@ export interface RfmPeriodo {
   ticketPromedio: number;
 }
 
+export interface UltimaActualizacion {
+  ultimaActualizacion: string;
+}
+
+export async function fetchUltimaActualizacion(): Promise<UltimaActualizacion> {
+  const res = await apiFetch("/db/ultima-actualizacion");
+  if (!res.ok) throw new Error("Error al cargar la última actualización.");
+  return res.json();
+}
+
 export async function fetchComportamientoCompraSerie(
   tipo: "marca" | "retailer",
   id: string,
