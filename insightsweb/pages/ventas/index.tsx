@@ -55,6 +55,19 @@ type TipoGrafico = "line" | "bar";
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function formatCLP(value: number): string {
+  if (value >= 1_000_000) {
+    const millions = value / 1_000_000;
+    const formatted = new Intl.NumberFormat("es-CL", { maximumFractionDigits: 1 }).format(millions);
+    return `$${formatted}M`;
+  }
+  return new Intl.NumberFormat("es-CL", {
+    style: "currency",
+    currency: "CLP",
+    maximumFractionDigits: 0,
+  }).format(value);
+}
+
+function formatCLPFull(value: number): string {
   return new Intl.NumberFormat("es-CL", {
     style: "currency",
     currency: "CLP",
