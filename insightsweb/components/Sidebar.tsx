@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
+import { fetchUltimaActualizacion } from "../lib/api";
 
 type Rol = "admin_global_andesml" | "admin_retailer" | "admin_marca";
 
@@ -72,6 +73,15 @@ export default function Sidebar() {
     if (!rol) return false;
     return roles.includes(rol);
   };
+
+  const [ultimaActualizacion, setUltimaActualizacion] = useState<string | null>(null);
+  const [errorActualizacion, setErrorActualizacion] = useState(false);
+
+  useEffect(() => {
+    fetchUltimaActualizacion()
+      .then((data) => setUltimaActualizacion(data.ultimaActualizacion || null))
+      .catch(() => setErrorActualizacion(true));
+  }, []);
 
   const [openMenus, setOpenMenus] = useState<Record<string, boolean>>(() => {
     const initial: Record<string, boolean> = {};
@@ -159,6 +169,28 @@ export default function Sidebar() {
           );
         })}
       </nav>
+
+      <div className="home-sidebar-data-status">
+        <div className={`home-sidebar-data-status-dot${errorActualizacion ? " error" : ultimaActualizacion ? "" : " loading"}`} />
+        <div className="home-sidebar-data-status-text">
+          <span className="home-sidebar-data-status-label">
+            {errorActualizacion ? "Sin conexión" : "Datos actualizados"}
+          </span>
+          {!errorActualizacion && (
+            <span className="home-sidebar-data-status-time">
+              {ultimaActualizacion
+                ? new Date(ultimaActualizacion).toLocaleString("es-CL", {
+                    day: "2-digit",
+                    month: "short",
+                    year: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })
+                : "Cargando..."}
+            </span>
+          )}
+        </div>
+      </div>
 
       <div className="home-sidebar-footer">
         <img
