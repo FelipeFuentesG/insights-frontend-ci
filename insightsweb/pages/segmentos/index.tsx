@@ -8,6 +8,9 @@ import {
   fetchSegmentosCompra,
   SegmentosCompra,
   limpiarSegmentosCompra,
+  limpiarTodosSegmentosCompra,
+  asignarClustersClientes,
+  asignarClustersTodasMarcas,
 } from "../../lib/api";
 import {
   PieChart,
@@ -259,6 +262,12 @@ export default function SegmentosPage() {
   const [segmentos, setSegmentos] = useState<SegmentosCompra | null>(null);
   const [loadingSeg, setLoadingSeg] = useState(false);
   const [limpiandoSeg, setLimpiandoSeg] = useState(false);
+  const [limpiandoTodos, setLimpiandoTodos] = useState(false);
+  const [asignandoClusters, setAsignandoClusters] = useState(false);
+  const [asignandoTodosClusters, setAsignandoTodosClusters] = useState(false);
+  const [toast, setToast] = useState<
+    { tipo: "ok" | "info" | "error"; msg: string } | null
+  >(null);
 
   // Layout responsive
   const chartContainerRef = useRef<HTMLDivElement>(null);
@@ -382,6 +391,106 @@ export default function SegmentosPage() {
     }
   }, [effectiveIdMarca, fetchSegmentos]);
 
+  // Asignación automática por reglas (admin global, retailer y marca).
+  const handleAsignarClusters = useCallback(async () => {
+    if (!effectiveIdMarca) return;
+    setAsignandoClusters(true);
+    setToast(null);
+    setError(null);
+    try {
+      const res = await asignarClustersClientes(String(effectiveIdMarca));
+      if (res.clientesAsignados === 0) {
+        setToast({ tipo: "info", msg: "Todos los clientes ya tienen cluster asignado." });
+      } else {
+        const prefix = res.clustersCreados ? "Clusters creados. " : "";
+        setToast({
+          tipo: "ok",
+          msg: `${prefix}${formatNum(res.clientesAsignados)} cliente${
+            res.clientesAsignados === 1 ? "" : "s"
+          } asignado${res.clientesAsignados === 1 ? "" : "s"} a un cluster.`,
+        });
+      }
+      // Refrescar segmentos para reflejar las nuevas asignaciones.
+      await fetchSegmentos(true);
+    } catch (e) {
+      setToast({ tipo: "error", msg: (e as Error).message ?? "Error al asignar clusters." });
+    } finally {
+      setAsignandoClusters(false);
+    }
+  }, [effectiveIdMarca, fetchSegmentos]);
+
+  // Asignación global de clusters a TODAS las marcas (solo admin global).
+  const handleAsignarTodosClusters = useCallback(async () => {
+    const ok = window.confirm(
+      "⚠ ACCIÓN GLOBAL ⚠\n\n" +
+      "¿Asignar clusters a TODAS las marcas de TODOS los retailers?\n\n" +
+      "Cada cliente sin cluster será evaluado y asignado al segmento que mejor " +
+      "describe su comportamiento. Los 6 clusters se crearán por cada marca que " +
+      "aún no los tenga. La operación puede tardar varios minutos."
+    );
+    if (!ok) return;
+
+    setAsignandoTodosClusters(true);
+    setToast(null);
+    setError(null);
+    try {
+      const res = await asignarClustersTodasMarcas();
+      if (res.clientesAsignados === 0) {
+        setToast({
+          tipo: "info",
+          msg: "Todas las marcas ya tenían sus clientes asignados a algún cluster.",
+        });
+      } else {
+        const prefix = res.clustersCreados ? "Clusters creados en marcas faltantes. " : "";
+        setToast({
+          tipo: "ok",
+          msg: `${prefix}${formatNum(res.clientesAsignados)} cliente${
+            res.clientesAsignados === 1 ? "" : "s"
+          } asignado${res.clientesAsignados === 1 ? "" : "s"} a un cluster en total.`,
+        });
+      }
+      // Refrescar segmentos si hay una marca en contexto.
+      if (effectiveIdMarca) {
+        await fetchSegmentos(true);
+      }
+    } catch (e) {
+      setToast({ tipo: "error", msg: (e as Error).message ?? "Error al asignar clusters." });
+    } finally {
+      setAsignandoTodosClusters(false);
+    }
+  }, [effectiveIdMarca, fetchSegmentos]);
+
+  // El toast se autocierra a los 6s.
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 6000);
+    return () => clearTimeout(t);
+  }, [toast]);
+
+  // Limpieza global (solo admin global de Andes).
+  const handleLimpiarTodosSegmentos = useCallback(async () => {
+    const ok = window.confirm(
+      "⚠ ACCIÓN GLOBAL ⚠\n\n" +
+      "¿Limpiar los segmentos de TODAS las marcas de TODOS los retailers?\n\n" +
+      "Todos los clientes del sistema quedarán sin segmento asignado " +
+      "(id_cluster = NULL). Los segmentos en sí no se eliminan, pero " +
+      "quedarán vacíos hasta una nueva recalculación.\n\n" +
+      "Esta acción no se puede deshacer."
+    );
+    if (!ok) return;
+
+    setLimpiandoTodos(true);
+    setError(null);
+    try {
+      await limpiarTodosSegmentosCompra();
+      await fetchSegmentos(true);
+    } catch (e) {
+      setError((e as Error).message ?? "Error al limpiar segmentos.");
+    } finally {
+      setLimpiandoTodos(false);
+    }
+  }, [fetchSegmentos]);
+
   // ── Derivados ──────────────────────────────────────────────────────────────
   const initials = (user?.nombre ?? "U")
     .split(" ")
@@ -451,9 +560,59 @@ export default function SegmentosPage() {
   const pct = (n: number) => (totalSeg > 0 ? Math.round((n / totalSeg) * 100) : 0);
 
   // ── Render ────────────────────────────────────────────────────────────────
+  const toastColors = {
+    ok: { bg: "#ecfdf5", border: "#10b981", text: "#065f46" },
+    info: { bg: "#eff6ff", border: "#3b82f6", text: "#1e3a8a" },
+    error: { bg: "#fef2f2", border: "#ef4444", text: "#991b1b" },
+  } as const;
+
   return (
     <div className="home-layout">
       <Sidebar />
+
+      {/* Toast flotante */}
+      {toast && (
+        <div
+          role="status"
+          style={{
+            position: "fixed",
+            top: "20px",
+            right: "20px",
+            zIndex: 1000,
+            maxWidth: "360px",
+            padding: "12px 16px",
+            borderRadius: "10px",
+            border: `1px solid ${toastColors[toast.tipo].border}`,
+            background: toastColors[toast.tipo].bg,
+            color: toastColors[toast.tipo].text,
+            fontSize: "13px",
+            fontWeight: 500,
+            boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
+            display: "flex",
+            alignItems: "flex-start",
+            justifyContent: "space-between",
+            gap: "12px",
+          }}
+        >
+          <span>{toast.msg}</span>
+          <button
+            onClick={() => setToast(null)}
+            aria-label="Cerrar notificación"
+            style={{
+              background: "transparent",
+              border: "none",
+              color: toastColors[toast.tipo].text,
+              fontSize: "16px",
+              fontWeight: 700,
+              cursor: "pointer",
+              lineHeight: 1,
+              padding: 0,
+            }}
+          >
+            ×
+          </button>
+        </div>
+      )}
 
       <main className="home-main pd-main">
         <header className="home-header">
@@ -774,10 +933,21 @@ export default function SegmentosPage() {
 
               {tab === "compras" && (
                 <>
-                  {/* Acciones de mantenimiento (solo admin global y retailer) */}
-                  {(user?.rol === "admin_global_andesml" ||
-                    user?.rol === "admin_retailer") && (
+                  {/* Asignación automática de clusters (admin global, retailer y marca) */}
+                  {user && (
                     <section className="pd-card" style={{ padding: "12px 16px" }}>
+                      <p
+                        style={{
+                          margin: 0,
+                          fontSize: "13px",
+                          fontWeight: 600,
+                          color: "#374151",
+                        }}
+                      >
+                        Segmentación automática
+                      </p>
+
+                      {/* Asignación por marca */}
                       <div
                         style={{
                           display: "flex",
@@ -785,33 +955,155 @@ export default function SegmentosPage() {
                           justifyContent: "space-between",
                           gap: "12px",
                           flexWrap: "wrap",
+                          marginTop: "12px",
                         }}
                       >
-                        <div>
+                        <p
+                          style={{
+                            margin: 0,
+                            fontSize: "12px",
+                            color: "#6b7280",
+                            flex: 1,
+                            minWidth: "200px",
+                          }}
+                        >
+                          Asigna cada cliente sin cluster de esta marca al segmento que
+                          mejor describe su comportamiento de compra e interacción.
+                        </p>
+                        <button
+                          onClick={handleAsignarClusters}
+                          disabled={
+                            asignandoClusters ||
+                            asignandoTodosClusters ||
+                            limpiandoSeg ||
+                            limpiandoTodos
+                          }
+                          style={{
+                            padding: "8px 16px",
+                            borderRadius: "8px",
+                            border: "1px solid #10b981",
+                            background: "#10b981",
+                            color: "#ffffff",
+                            fontSize: "13px",
+                            fontWeight: 600,
+                            cursor:
+                              asignandoClusters ||
+                              asignandoTodosClusters ||
+                              limpiandoSeg ||
+                              limpiandoTodos
+                                ? "not-allowed"
+                                : "pointer",
+                            opacity: asignandoClusters ? 0.7 : 1,
+                          }}
+                        >
+                          {asignandoClusters ? "Asignando…" : "Asignar Clusters"}
+                        </button>
+                      </div>
+
+                      {/* Asignación global (solo admin global) */}
+                      {user.rol === "admin_global_andesml" && (
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                            gap: "12px",
+                            flexWrap: "wrap",
+                            marginTop: "10px",
+                            paddingTop: "10px",
+                            borderTop: "1px dashed #e5e7eb",
+                          }}
+                        >
                           <p
                             style={{
                               margin: 0,
-                              fontSize: "13px",
-                              fontWeight: 600,
-                              color: "#374151",
-                            }}
-                          >
-                            Mantenimiento de segmentos
-                          </p>
-                          <p
-                            style={{
-                              margin: "4px 0 0 0",
                               fontSize: "12px",
                               color: "#6b7280",
+                              flex: 1,
+                              minWidth: "200px",
                             }}
                           >
-                            Desasigna a todos los clientes de su segmento de compra actual.
+                            <strong style={{ color: "#047857" }}>Acción global:</strong>{" "}
+                            asigna clusters a los clientes sin segmento de TODAS las
+                            marcas. Puede tardar varios minutos.
                           </p>
+                          <button
+                            onClick={handleAsignarTodosClusters}
+                            disabled={
+                              asignandoClusters ||
+                              asignandoTodosClusters ||
+                              limpiandoSeg ||
+                              limpiandoTodos
+                            }
+                            style={{
+                              padding: "8px 16px",
+                              borderRadius: "8px",
+                              border: "1px solid #047857",
+                              background: "#047857",
+                              color: "#ffffff",
+                              fontSize: "13px",
+                              fontWeight: 600,
+                              cursor:
+                                asignandoClusters ||
+                                asignandoTodosClusters ||
+                                limpiandoSeg ||
+                                limpiandoTodos
+                                  ? "not-allowed"
+                                  : "pointer",
+                              opacity: asignandoTodosClusters ? 0.7 : 1,
+                            }}
+                          >
+                            {asignandoTodosClusters
+                              ? "Asignando…"
+                              : "Asignar Clusters a todas las marcas"}
+                          </button>
                         </div>
+                      )}
+                    </section>
+                  )}
+
+                  {/* Acciones de mantenimiento (solo admin global y retailer) */}
+                  {(user?.rol === "admin_global_andesml" ||
+                    user?.rol === "admin_retailer") && (
+                    <section className="pd-card" style={{ padding: "12px 16px" }}>
+                      <p
+                        style={{
+                          margin: 0,
+                          fontSize: "13px",
+                          fontWeight: 600,
+                          color: "#374151",
+                        }}
+                      >
+                        Mantenimiento de segmentos
+                      </p>
+
+                      {/* Limpieza por marca */}
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          gap: "12px",
+                          flexWrap: "wrap",
+                          marginTop: "12px",
+                        }}
+                      >
+                        <p
+                          style={{
+                            margin: 0,
+                            fontSize: "12px",
+                            color: "#6b7280",
+                            flex: 1,
+                            minWidth: "200px",
+                          }}
+                        >
+                          Desasigna a los clientes de esta marca de su segmento actual.
+                        </p>
                         <button
                           onClick={handleLimpiarSegmentos}
                           disabled={
                             limpiandoSeg ||
+                            limpiandoTodos ||
                             loadingSeg ||
                             !segmentos ||
                             segmentos.totalClientes - segmentos.clientesSinSegmento === 0
@@ -825,7 +1117,9 @@ export default function SegmentosPage() {
                             fontSize: "13px",
                             fontWeight: 600,
                             cursor:
-                              limpiandoSeg || loadingSeg ? "not-allowed" : "pointer",
+                              limpiandoSeg || limpiandoTodos || loadingSeg
+                                ? "not-allowed"
+                                : "pointer",
                             opacity:
                               !segmentos ||
                               segmentos.totalClientes - segmentos.clientesSinSegmento === 0
@@ -836,6 +1130,56 @@ export default function SegmentosPage() {
                           {limpiandoSeg ? "Limpiando…" : "Limpiar segmentos"}
                         </button>
                       </div>
+
+                      {/* Limpieza global (solo admin global) */}
+                      {user?.rol === "admin_global_andesml" && (
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                            gap: "12px",
+                            flexWrap: "wrap",
+                            marginTop: "10px",
+                            paddingTop: "10px",
+                            borderTop: "1px dashed #e5e7eb",
+                          }}
+                        >
+                          <p
+                            style={{
+                              margin: 0,
+                              fontSize: "12px",
+                              color: "#6b7280",
+                              flex: 1,
+                              minWidth: "200px",
+                            }}
+                          >
+                            <strong style={{ color: "#b91c1c" }}>Acción global:</strong>{" "}
+                            desasigna a TODOS los clientes de TODAS las marcas de su
+                            segmento actual.
+                          </p>
+                          <button
+                            onClick={handleLimpiarTodosSegmentos}
+                            disabled={limpiandoSeg || limpiandoTodos || loadingSeg}
+                            style={{
+                              padding: "8px 16px",
+                              borderRadius: "8px",
+                              border: "1px solid #b91c1c",
+                              background: limpiandoTodos ? "#b91c1c" : "#b91c1c",
+                              color: "#ffffff",
+                              fontSize: "13px",
+                              fontWeight: 600,
+                              cursor:
+                                limpiandoSeg || limpiandoTodos || loadingSeg
+                                  ? "not-allowed"
+                                  : "pointer",
+                              opacity: limpiandoTodos ? 0.7 : 1,
+                            }}
+                          >
+                            {limpiandoTodos ? "Limpiando…" : "Limpiar todos los segmentos"}
+                          </button>
+                        </div>
+                      )}
                     </section>
                   )}
 
@@ -909,42 +1253,82 @@ export default function SegmentosPage() {
                       </div>
                     </section>
 
-                  {/* Tarjetas por segmento con descripción */}
-                  {!loadingSeg && segmentos && segmentos.segmentos.length > 0 && (
+                  {/* Tarjetas por segmento con descripción (solo segmentos con clientes) */}
+                  {!loadingSeg &&
+                    segmentos &&
+                    segmentos.segmentos.some((s) => s.totalClientes > 0) && (
                     <section className="seg-grid">
-                      {segmentos.segmentos.map((s, i) => (
-                        <article
-                          key={s.idCluster}
-                          className="seg-card"
-                          style={{ borderTopColor: PIE_COLORS[i % PIE_COLORS.length] }}
-                        >
-                          <div className="seg-card-head">
-                            <h3 className="seg-card-title">
-                              {s.nombre ?? `Segmento ${s.idCluster}`}
-                            </h3>
-                            {s.definidoIa && <span className="seg-badge">IA</span>}
-                          </div>
-                          <p className="seg-card-count">{formatNum(s.totalClientes)}</p>
-                          <p className="seg-card-sub">
-                            {pct(s.totalClientes)}% del total · {formatNum(s.totalClientes)} clientes
-                          </p>
-                          <p className="seg-card-desc">
-                            {s.descripcion ?? "Sin descripción."}
-                          </p>
-                        </article>
-                      ))}
+                      {segmentos.segmentos
+                        .filter((s) => s.totalClientes > 0)
+                        .map((s, i) => {
+                          const color = PIE_COLORS[i % PIE_COLORS.length];
+                          const porcentaje = pct(s.totalClientes);
+                          return (
+                            <article
+                              key={s.idCluster}
+                              className="seg-card"
+                              style={{ ["--seg-accent" as string]: color }}
+                            >
+                              <div className="seg-card-head">
+                                <h3 className="seg-card-title">
+                                  {s.nombre ?? `Segmento ${s.idCluster}`}
+                                </h3>
+                                {s.definidoIa && <span className="seg-badge">IA</span>}
+                              </div>
+
+                              <div className="seg-card-metric">
+                                <p className="seg-card-count">{formatNum(s.totalClientes)}</p>
+                                <span className="seg-card-count-label">
+                                  {s.totalClientes === 1 ? "cliente" : "clientes"}
+                                </span>
+                              </div>
+
+                              <div className="seg-card-progress">
+                                <div className="seg-card-progress-track">
+                                  <div
+                                    className="seg-card-progress-bar"
+                                    style={{ width: `${Math.max(porcentaje, 2)}%` }}
+                                  />
+                                </div>
+                                <span className="seg-card-progress-pct">{porcentaje}%</span>
+                              </div>
+
+                              <p className="seg-card-desc">
+                                {s.descripcion ?? "Sin descripción."}
+                              </p>
+                            </article>
+                          );
+                        })}
 
                       {segmentos.clientesSinSegmento > 0 && (
                         <article className="seg-card seg-card--muted">
                           <div className="seg-card-head">
                             <h3 className="seg-card-title">Sin segmento</h3>
                           </div>
-                          <p className="seg-card-count">
-                            {formatNum(segmentos.clientesSinSegmento)}
-                          </p>
-                          <p className="seg-card-sub">
-                            {pct(segmentos.clientesSinSegmento)}% del total
-                          </p>
+
+                          <div className="seg-card-metric">
+                            <p className="seg-card-count">
+                              {formatNum(segmentos.clientesSinSegmento)}
+                            </p>
+                            <span className="seg-card-count-label">
+                              {segmentos.clientesSinSegmento === 1 ? "cliente" : "clientes"}
+                            </span>
+                          </div>
+
+                          <div className="seg-card-progress">
+                            <div className="seg-card-progress-track">
+                              <div
+                                className="seg-card-progress-bar"
+                                style={{
+                                  width: `${Math.max(pct(segmentos.clientesSinSegmento), 2)}%`,
+                                }}
+                              />
+                            </div>
+                            <span className="seg-card-progress-pct">
+                              {pct(segmentos.clientesSinSegmento)}%
+                            </span>
+                          </div>
+
                           <p className="seg-card-desc">
                             Clientes que aún no han sido asignados a un segmento de compra.
                           </p>

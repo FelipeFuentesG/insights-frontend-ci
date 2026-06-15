@@ -162,6 +162,46 @@ export async function limpiarSegmentosCompra(
   return res.json();
 }
 
+export async function limpiarTodosSegmentosCompra(): Promise<{ clientesActualizados: number }> {
+  const res = await apiFetch(`/db/segmentos-compra/asignaciones`, {
+    method: "DELETE",
+  });
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(body || "Error al limpiar todos los segmentos.");
+  }
+  return res.json();
+}
+
+export interface AsignacionClustersResultado {
+  clustersCreados: boolean;
+  clientesAsignados: number;
+}
+
+export async function asignarClustersClientes(
+  idMarca: string
+): Promise<AsignacionClustersResultado> {
+  const res = await apiFetch(`/db/marcas/${idMarca}/clientes/asignar-clusters`, {
+    method: "POST",
+  });
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(body || "Error al asignar clusters.");
+  }
+  return res.json();
+}
+
+export async function asignarClustersTodasMarcas(): Promise<AsignacionClustersResultado> {
+  const res = await apiFetch(`/db/clientes/asignar-clusters`, {
+    method: "POST",
+  });
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(body || "Error al asignar clusters globalmente.");
+  }
+  return res.json();
+}
+
 export interface RfmMetrics {
   recenciaPromedioDias: number;
   frecuenciaPromedio: number;
