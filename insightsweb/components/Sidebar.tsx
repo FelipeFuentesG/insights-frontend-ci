@@ -1,5 +1,14 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
+import { fetchUltimaActualizacion } from "../lib/api";
+
+type Rol = "admin_global_andesml" | "admin_retailer" | "admin_marca";
+
+type NavChild = {
+  label: string;
+  href?: string;
+  roles?: Rol[];
+};
 
 type NavItem = {
   label: string;
@@ -7,7 +16,8 @@ type NavItem = {
   href?: string;
   active?: boolean;
   chevron?: boolean;
-  children?: { label: string; href?: string }[];
+  roles?: Rol[];
+  children?: NavChild[];
 };
 
 const NAV_ITEMS: NavItem[] = [
@@ -21,7 +31,11 @@ const NAV_ITEMS: NavItem[] = [
       { label: "Dashboard de Ventas Totales", href: "/ventas" },
       { label: "Dashboard de Clientes", href: "/clientes" },
       { label: "Segmentos de Clientes", href: "/segmentos" },
-      { label: "Dashboard Global de Retailer"}, //Luego filtrar para rol = "admin_retailer"
+      {
+        label: "Dashboard Global de Retailer",
+        href: "/retailer-global",
+        roles: ["admin_global_andesml", "admin_retailer"],
+      },
     ],
   },
   { label: "Insights", imgSrc: "/bulb.svg", href: "/insights" },
@@ -30,15 +44,45 @@ const NAV_ITEMS: NavItem[] = [
     imgSrc: "/bag.svg",
     chevron: true,
     children: [
-      { label: "Productos con bajo rendimiento", href: "/rendimiento" },
+      { label: "Productos con Bajo Rendimiento", href: "/rendimiento" },
+      { label: "Gaps de Rentabilidad", href: "/rendimiento/gaps-rentabilidad" },
     ],
   },
-  { label: "Gestión de la Plataforma", imgSrc: "/campaign.svg" }, //Luego filtrar para rol = "admin_global_andesml"
-  { label: "Estado de Carga de Datos"}, //Tal vez después agregar como tarjeta con un valor más que como botón a otra sección
+  { label: "Gestión de la Plataforma", imgSrc: "/campaign.svg", roles: ["admin_global_andesml"] },
+  { label: "Estado de Carga de Datos" },
 ];
 
 export default function Sidebar() {
   const router = useRouter();
+  const [rol, setRol] = useState<Rol | null>(null);
+
+  useEffect(() => {
+    const stored = localStorage.getItem("user");
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored);
+        setRol(parsed.rol ?? null);
+      } catch {
+        setRol(null);
+      }
+    }
+  }, []);
+
+  const canSee = (roles?: Rol[]) => {
+    if (!roles) return true;
+    if (!rol) return false;
+    return roles.includes(rol);
+  };
+
+  const [ultimaActualizacion, setUltimaActualizacion] = useState<string | null>(null);
+  const [errorActualizacion, setErrorActualizacion] = useState(false);
+
+  useEffect(() => {
+    fetchUltimaActualizacion()
+      .then((data) => setUltimaActualizacion(data.ultimaActualizacion || null))
+      .catch(() => setErrorActualizacion(true));
+  }, []);
+
   const [openMenus, setOpenMenus] = useState<Record<string, boolean>>(() => {
     const initial: Record<string, boolean> = {};
     NAV_ITEMS.forEach((item) => {
@@ -64,8 +108,9 @@ export default function Sidebar() {
       </div>
 
       <nav className="home-sidebar-nav">
-        {NAV_ITEMS.map(({ label, imgSrc, href, chevron, children }) => {
-          const active = isActive(href) || (children?.some((c) => isActive(c.href)) ?? false);
+        {NAV_ITEMS.filter((item) => canSee(item.roles)).map(({ label, imgSrc, href, chevron, children }) => {
+          const visibleChildren = children?.filter((c) => canSee(c.roles));
+          const active = isActive(href) || (visibleChildren?.some((c) => isActive(c.href)) ?? false);
           const open = openMenus[label] ?? false;
 
           return (
@@ -106,12 +151,12 @@ export default function Sidebar() {
               </button>
 
               {/* Submenú */}
-              {children && open && (
+              {visibleChildren && open && (
                 <div className="home-sidebar-submenu">
-                  {children.map((child) => (
+                  {visibleChildren.map((child) => (
                     <button
                       key={child.label}
-                      className={`home-sidebar-subitem${isActive(child.href) ? " active" : ""}`}
+                      className={`home-sidebar-subitem${router.pathname === child.href ? " active" : ""}`}
                       onClick={() => { if (child.href) router.push(child.href); }}
                     >
                       <span className="home-sidebar-subitem-dot" />
@@ -124,6 +169,28 @@ export default function Sidebar() {
           );
         })}
       </nav>
+
+      <div className="home-sidebar-data-status">
+        <div className={`home-sidebar-data-status-dot${errorActualizacion ? " error" : ultimaActualizacion ? "" : " loading"}`} />
+        <div className="home-sidebar-data-status-text">
+          <span className="home-sidebar-data-status-label">
+            {errorActualizacion ? "Sin conexión" : "Datos actualizados"}
+          </span>
+          {!errorActualizacion && (
+            <span className="home-sidebar-data-status-time">
+              {ultimaActualizacion
+                ? new Date(ultimaActualizacion).toLocaleString("es-CL", {
+                    day: "2-digit",
+                    month: "short",
+                    year: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })
+                : "Cargando..."}
+            </span>
+          )}
+        </div>
+      </div>
 
       <div className="home-sidebar-footer">
         <img

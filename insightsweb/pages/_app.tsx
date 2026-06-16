@@ -6,6 +6,7 @@ import "../styles/home.css";
 import "../styles/idProducto.css";
 import "../styles/productos.css";  
 import "../styles/rendimiento.css";
+import "../styles/segmentos.css";
 import "../components/Sidebar.css";
 import "../components/IndicadoresTab.css";
 import "../components/InteraccionesTab.css";

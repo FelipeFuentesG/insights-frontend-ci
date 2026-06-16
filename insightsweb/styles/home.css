@@ -175,3 +175,18 @@
   color: #9ca3af;
   font-size: 0.9rem;
 }
+
+.ind-filter-input,
+.pd-filter-input,
+.rend-filter-input {
+  box-sizing: border-box;
+  font: inherit;
+}
+
+.ind-filter-input[type="date"],
+.pd-filter-input[type="date"],
+.rend-filter-input[type="date"] {
+  -webkit-appearance: none;
+  appearance: none;
+  min-height: 34px;
+}

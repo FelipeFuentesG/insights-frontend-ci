@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
-import Sidebar from "../components/Sidebar";
-import { apiFetch } from "../lib/api";
+import Sidebar from "../../components/Sidebar";
+import { apiFetch } from "../../lib/api";
 
 interface ProductoRendimiento {
   idProducto: number;
@@ -157,8 +157,6 @@ export default function RendimientoPage() {
         </header>
 
         <div className="home-content pl-content">
-
-          {/* Selector de retailer para admin global */}
           {user?.rol === "admin_global_andesml" && (
             <div className="pl-retailer-selector">
               <p className="pl-retailer-selector-title">
@@ -178,7 +176,6 @@ export default function RendimientoPage() {
             </div>
           )}
 
-          {/* Filtro */}
           <section className="rend-filters-bar">
             <div className="rend-filter-group">
               <label className="rend-filter-label">Umbral de conversión (%)</label>
@@ -207,7 +204,6 @@ export default function RendimientoPage() {
 
           {error && <div className="rend-error-banner">{error}</div>}
 
-          {/* Skeleton mientras carga */}
           {loading && (
             <section className="rend-card">
               <div className="rend-card-header">
@@ -246,7 +242,6 @@ export default function RendimientoPage() {
             </section>
           )}
 
-          {/* Tabla de resultados */}
           {!loading && productos !== null && (
             <section className="rend-card">
               <div className="rend-card-header">

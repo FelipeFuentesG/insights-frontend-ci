@@ -26,9 +26,14 @@ interface AIResponse {
 
 interface Props {
   user: StoredUser | null;
+  /** Contexto opcional que se envía a Gemini junto con cada pregunta.
+   *  Si es null/undefined, el chat funciona en modo general (Insights). */
+  contexto?: string | null;
+  /** Preguntas sugeridas que se muestran como chips antes del primer mensaje. */
+  suggestions?: string[];
 }
 
-export default function InsightsChat({ user }: Props) {
+export default function InsightsChat({ user, contexto = null, suggestions }: Props) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -38,8 +43,7 @@ export default function InsightsChat({ user }: Props) {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading]);
 
-  const handleSend = async () => {
-    const pregunta = input.trim();
+  const send = async (pregunta: string) => {
     if (!pregunta || loading) return;
 
     setInput("");
@@ -49,7 +53,7 @@ export default function InsightsChat({ user }: Props) {
     try {
       const res = await apiFetch("/ai/ask", {
         method: "POST",
-        body: JSON.stringify({ pregunta, contexto: null }),
+        body: JSON.stringify({ pregunta, contexto: contexto ?? null }),
       });
       const data: AIResponse = await res.json();
 
@@ -68,6 +72,8 @@ export default function InsightsChat({ user }: Props) {
     }
   };
 
+  const handleSend = () => send(input.trim());
+
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
@@ -81,9 +87,25 @@ export default function InsightsChat({ user }: Props) {
     <>
       <div className="ai-messages">
         {messages.length === 0 && (
-          <p className="ai-msg ai-msg--ai">
-            Hola{firstName ? `, ${firstName}` : ""}. ¿En qué te puedo ayudar?
-          </p>
+          <>
+            <p className="ai-msg ai-msg--ai">
+              Hola{firstName ? `, ${firstName}` : ""}. ¿En qué te puedo ayudar?
+            </p>
+            {suggestions && suggestions.length > 0 && (
+              <div className="ai-suggestions">
+                {suggestions.map((s, i) => (
+                  <button
+                    key={i}
+                    className="ai-suggestion-chip"
+                    onClick={() => send(s)}
+                    disabled={loading}
+                  >
+                    {s}
+                  </button>
+                ))}
+              </div>
+            )}
+          </>
         )}
         {messages.map((msg, i) => (
           <p key={i} className={`ai-msg ai-msg--${msg.role}`}>

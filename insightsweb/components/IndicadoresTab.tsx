@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback } from "react";
 import { apiFetch } from "../lib/api";
 import {
-  LineChart, Line, BarChart, Bar,
+  BarChart, Bar,
   XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, Legend,
+  ResponsiveContainer,
 } from "recharts";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -27,18 +27,21 @@ interface MainMetrics     { ingresosTotal: number; totalTransacciones: number; p
 interface MetricasPeriodo { periodo: string; ingresosTotal: number; totalTransacciones: number; presenciaCarritos: number; }
 interface TopProducto     { idProducto: number; nombre: string; ingresosTotal: number; unidadesVendidas: number; }
 interface VentasPorCanal { canal: string; ingresosTotal: number; unidadesVendidas: number; }
+interface CarritoEventos { agregarCarro: number; quitarCarro: number; }
 
-type AgruparPor    = "dia" | "semana" | "mes" | "año";
-type MetricaActiva = "ingresosTotal" | "totalTransacciones" | "presenciaCarritos";
-type TipoGrafico   = "line" | "bar";
+type AgruparPor   = "dia" | "semana" | "mes" | "año";
 type MetricaCanal = "ingresosTotal" | "unidadesVendidas";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function formatCLP(v: number) {
+  if (Math.abs(v) >= 1_000_000)
+    return new Intl.NumberFormat("es-CL", { style: "currency", currency: "CLP", notation: "compact", maximumFractionDigits: 1 }).format(v);
   return new Intl.NumberFormat("es-CL", { style: "currency", currency: "CLP", maximumFractionDigits: 0 }).format(v);
 }
 function formatNum(v: number) {
+  if (Math.abs(v) >= 1_000_000)
+    return new Intl.NumberFormat("es-CL", { notation: "compact", maximumFractionDigits: 1 }).format(v);
   return new Intl.NumberFormat("es-CL").format(v);
 }
 function formatPct(v: number) {
@@ -109,9 +112,6 @@ export default function IndicadoresTab({ user }: { user: StoredUser | null }) {
   const [hasta, setHasta]       = useState(getIsoToday());
   const [agruparPor, setAgruparPor] = useState<AgruparPor>("mes");
 
-  // Chart controls
-  const [metricaActiva, setMetricaActiva] = useState<MetricaActiva>("ingresosTotal");
-  const [tipoGrafico, setTipoGrafico]     = useState<TipoGrafico>("line");
 
   // Data
   const [metricas, setMetricas] = useState<MainMetrics | null>(null);
@@ -121,6 +121,7 @@ export default function IndicadoresTab({ user }: { user: StoredUser | null }) {
   const [error, setError]       = useState<string | null>(null);
   const [ventasCanal, setVentasCanal]   = useState<VentasPorCanal[]>([]);
   const [metricaCanal, setMetricaCanal] = useState<MetricaCanal>("ingresosTotal");
+  const [carritoEventos, setCarritoEventos] = useState<CarritoEventos | null>(null);
 
   const rol = user?.rol;
 
@@ -180,35 +181,40 @@ export default function IndicadoresTab({ user }: { user: StoredUser | null }) {
       let urlSerie: string;
       let urlTop: string;
       let urlCanal: string;
+      let urlCarrito: string;
 
       if (effectiveIdMarca) {
         urlMetricas = `/db/marcas/${effectiveIdMarca}/metricas-principales${qs}`;
         urlSerie    = `/db/marcas/${effectiveIdMarca}/metricas-principales/serie${qsSerie}`;
         urlTop      = `/db/marcas/${effectiveIdMarca}/top-productos${qsTop}`;
         urlCanal = `/db/marcas/${effectiveIdMarca}/ventas-por-canal${qs}`;
+        urlCarrito  = `/db/marcas/${effectiveIdMarca}/carrito-eventos${qs}`;
       } else {
         urlMetricas = `/db/retailers/${effectiveIdRetailer}/metricas-principales${qs}`;
         urlSerie    = `/db/retailers/${effectiveIdRetailer}/metricas-principales/serie${qsSerie}`;
         urlTop      = `/db/retailers/${effectiveIdRetailer}/top-productos${qsTop}`;
         urlCanal = `/db/retailers/${effectiveIdRetailer}/ventas-por-canal${qs}`;
+        urlCarrito  = `/db/retailers/${effectiveIdRetailer}/carrito-eventos${qs}`;
       }
 
-      const [rM, rS, rT, rC] = await Promise.all([
+      const [rM, rS, rT, rC, rCar] = await Promise.all([
         apiFetch(urlMetricas),
         apiFetch(urlSerie),
         apiFetch(urlTop),
         apiFetch(urlCanal),
+        apiFetch(urlCarrito),
       ]);
 
-      if (!rM.ok || !rS.ok || !rT.ok || !rC.ok) throw new Error("Error al cargar los datos.");
+      if (!rM.ok || !rS.ok || !rT.ok || !rC.ok || !rCar.ok) throw new Error("Error al cargar los datos.");
 
-      const [dataM, dataS, dataT, dataC]: [MainMetrics, MetricasPeriodo[], TopProducto[], VentasPorCanal[]] =
-        await Promise.all([rM.json(), rS.json(), rT.json(), rC.json(), ]);
+      const [dataM, dataS, dataT, dataC, dataCar]: [MainMetrics, MetricasPeriodo[], TopProducto[], VentasPorCanal[], CarritoEventos] =
+        await Promise.all([rM.json(), rS.json(), rT.json(), rC.json(), rCar.json()]);
 
       setMetricas(dataM);
       setSerie(dataS);
       setTopProductos(dataT);
       setVentasCanal(dataC);
+      setCarritoEventos(dataCar);
     } catch (e) {
       setError((e as Error).message ?? "Error desconocido.");
     } finally {
@@ -217,18 +223,6 @@ export default function IndicadoresTab({ user }: { user: StoredUser | null }) {
   }, [effectiveIdMarca, effectiveIdRetailer, desde, hasta, agruparPor]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
-
-  // ── Labels y formatters ────────────────────────────────────────────────────
-  const metricaOpts: { value: MetricaActiva; label: string }[] = [
-    { value: "ingresosTotal",       label: "Ingresos" },
-    { value: "totalTransacciones",  label: "Transacciones" },
-    { value: "presenciaCarritos",   label: "Presencia carrito" },
-  ];
-  const metricaLabel = metricaOpts.find(o => o.value === metricaActiva)?.label ?? "";
-  const metricaFormatter = (v: number) =>
-    metricaActiva === "ingresosTotal"      ? formatCLP(v) :
-    metricaActiva === "presenciaCarritos"  ? formatPct(v) :
-    formatNum(v);
 
   // Título contextual de qué estamos viendo
   // Derivar nombres para el contexto
@@ -351,82 +345,98 @@ export default function IndicadoresTab({ user }: { user: StoredUser | null }) {
             : "—"}
           sub="Ingreso por transacción"
         />
+        <KpiCard
+          label="Agregados al carrito de compras"
+          value={carritoEventos ? formatNum(carritoEventos.agregarCarro) : "—"}
+          sub="Eventos agregar_carro en el período"
+        />
+        <KpiCard
+          label="Quitados del carrito de compras"
+          value={carritoEventos ? formatNum(carritoEventos.quitarCarro) : "—"}
+          sub={carritoEventos && carritoEventos.agregarCarro > 0
+            ? `Retención: ${(((carritoEventos.agregarCarro - carritoEventos.quitarCarro) / carritoEventos.agregarCarro) * 100).toFixed(1)}%`
+            : "Sin datos de retención"}
+        />
       </section>
 
       {/* ── Gráfico de evolución ──────────────────────────────────────────── */}
       {/* borrado */}
 
-      {/* ── Gráfico ventas por canal ─────────────────────────────────────── */}
-      <section className="ind-card">
-        <div className="ind-card-header">
-          <div className="ind-card-header-left">
-            <h2 className="ind-card-title">Ventas por canal</h2>
-            <SegBtn<MetricaCanal>
-              options={canalOpts}
-              value={metricaCanal}
-              onChange={setMetricaCanal}
-            />
+      {/* ── Ventas por canal + Top productos (lado a lado) ───────────────── */}
+      <div className="ind-two-col">
+
+        {/* Gráfico ventas por canal */}
+        <section className="ind-card">
+          <div className="ind-card-header">
+            <div className="ind-card-header-left">
+              <h2 className="ind-card-title">Ventas por canal</h2>
+              <SegBtn<MetricaCanal>
+                options={canalOpts}
+                value={metricaCanal}
+                onChange={setMetricaCanal}
+              />
+            </div>
+            <span className="ind-badge">{ventasCanal.length} canales</span>
           </div>
-          <span className="ind-badge">{ventasCanal.length} canales</span>
-        </div>
 
-        <div className="ind-chart-area">
+          <div className="ind-chart-area ind-chart-area--sm">
+            {loading ? (
+              <div className="ind-skeleton" />
+            ) : ventasCanal.length === 0 ? (
+              <div className="ind-empty"><p className="ind-empty-text">No hay datos de canales para el período.</p></div>
+            ) : (
+              <ResponsiveContainer width="100%" height={220}>
+                <BarChart data={ventasCanal} margin={{ top: 4, right: 16, left: 4, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                  <XAxis dataKey="canal" tick={{ fontSize: 11, fill: "#6b7280" }} axisLine={false} tickLine={false} />
+                  <YAxis tickFormatter={canalFormatter} tick={{ fontSize: 10, fill: "#6b7280" }} axisLine={false} tickLine={false} width={85} />
+                  <Tooltip
+                    formatter={(v) => [canalFormatter(Number(v ?? 0)), canalLabel]}
+                    contentStyle={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: "8px", fontSize: "13px", boxShadow: "0 4px 12px rgba(0,0,0,0.08)" }}
+                  />
+                  <Bar dataKey={metricaCanal} fill="#6366f1" radius={[4, 4, 0, 0]} name={canalLabel} />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+        </section>
+
+        {/* Top productos */}
+        <section className="ind-card">
+          <div className="ind-card-header">
+            <h2 className="ind-card-title">Top 10 productos</h2>
+            <span className="ind-badge">{topProductos.length} productos</span>
+          </div>
+
           {loading ? (
-            <div className="ind-skeleton" />
-          ) : ventasCanal.length === 0 ? (
-            <div className="ind-empty"><p className="ind-empty-text">No hay datos de canales para el período.</p></div>
+            <div className="ind-skeleton" style={{ height: 200 }} />
+          ) : topProductos.length === 0 ? (
+            <div className="ind-empty"><p className="ind-empty-text">No hay datos de productos para el período.</p></div>
           ) : (
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={ventasCanal} margin={{ top: 4, right: 40, left: 10, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                <XAxis dataKey="canal" tick={{ fontSize: 12, fill: "#6b7280" }} axisLine={false} tickLine={false} />
-                <YAxis tickFormatter={canalFormatter} tick={{ fontSize: 11, fill: "#6b7280" }} axisLine={false} tickLine={false} width={90} />
-                <Tooltip
-                  formatter={(v) => [canalFormatter(Number(v ?? 0)), canalLabel]}
-                  contentStyle={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: "8px", fontSize: "13px", boxShadow: "0 4px 12px rgba(0,0,0,0.08)" }}
-                />
-                <Legend formatter={() => canalLabel} wrapperStyle={{ fontSize: "12px", paddingTop: "12px" }} />
-                <Bar dataKey={metricaCanal} fill="#6366f1" radius={[4, 4, 0, 0]} name={canalLabel} />
-              </BarChart>
-            </ResponsiveContainer>
-          )}
-        </div>
-      </section>
-
-      {/* ── Top productos ─────────────────────────────────────────────────── */}
-      <section className="ind-card">
-        <div className="ind-card-header">
-          <h2 className="ind-card-title">Top 10 productos</h2>
-          <span className="ind-badge">{topProductos.length} productos</span>
-        </div>
-
-        {loading ? (
-          <div className="ind-skeleton" style={{ height: 200 }} />
-        ) : topProductos.length === 0 ? (
-          <div className="ind-empty"><p className="ind-empty-text">No hay datos de productos para el período.</p></div>
-        ) : (
-          <div className="ind-top-list">
-            {topProductos.map((p, i) => {
-              const pct = (p.ingresosTotal / maxTopIngresos) * 100;
-              return (
-                <div key={p.idProducto} className="ind-top-row">
-                  <span className="ind-top-rank">#{i + 1}</span>
-                  <div className="ind-top-info">
-                    <span className="ind-top-nombre">{p.nombre ?? `Producto #${p.idProducto}`}</span>
-                    <div className="ind-top-bar-wrap">
-                      <div className="ind-top-bar" style={{ width: `${pct}%` }} />
+            <div className="ind-top-list">
+              {topProductos.map((p, i) => {
+                const pct = (p.ingresosTotal / maxTopIngresos) * 100;
+                return (
+                  <div key={p.idProducto} className="ind-top-row">
+                    <span className="ind-top-rank">#{i + 1}</span>
+                    <div className="ind-top-info">
+                      <span className="ind-top-nombre">{p.nombre ?? `Producto #${p.idProducto}`}</span>
+                      <div className="ind-top-bar-wrap">
+                        <div className="ind-top-bar" style={{ width: `${pct}%` }} />
+                      </div>
+                    </div>
+                    <div className="ind-top-nums">
+                      <span className="ind-top-ingresos">{formatCLP(p.ingresosTotal)}</span>
+                      <span className="ind-top-unidades">{formatNum(p.unidadesVendidas)} u.</span>
                     </div>
                   </div>
-                  <div className="ind-top-nums">
-                    <span className="ind-top-ingresos">{formatCLP(p.ingresosTotal)}</span>
-                    <span className="ind-top-unidades">{formatNum(p.unidadesVendidas)} u.</span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </section>
+                );
+              })}
+            </div>
+          )}
+        </section>
+
+      </div>
 
       {/* ── Tabla de detalle por período ─────────────────────────────────── */}
       {!loading && serie.length > 0 && (

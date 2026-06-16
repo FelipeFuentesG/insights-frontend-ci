@@ -247,6 +247,10 @@
   align-items: stretch;
 }
 
+.pd-chart-area--sm {
+  min-height: 0;
+}
+
 .pd-chart-area > * {
   flex: 1;
 }

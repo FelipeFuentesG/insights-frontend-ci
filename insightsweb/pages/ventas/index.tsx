@@ -11,7 +11,6 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  ResponsiveContainer,
   Legend,
 } from "recharts";
 
@@ -56,6 +55,19 @@ type TipoGrafico = "line" | "bar";
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function formatCLP(value: number): string {
+  if (value >= 1_000_000) {
+    const millions = value / 1_000_000;
+    const formatted = new Intl.NumberFormat("es-CL", { maximumFractionDigits: 1 }).format(millions);
+    return `$${formatted}M`;
+  }
+  return new Intl.NumberFormat("es-CL", {
+    style: "currency",
+    currency: "CLP",
+    maximumFractionDigits: 0,
+  }).format(value);
+}
+
+function formatCLPFull(value: number): string {
   return new Intl.NumberFormat("es-CL", {
     style: "currency",
     currency: "CLP",
@@ -143,7 +155,6 @@ export default function VentasTotalesPage() {
   const [marcas, setMarcas] = useState<MarcaResumen[]>([]);
   const [retailerSeleccionado, setRetailerSeleccionado] = useState<number | null>(null);
   const [marcaSeleccionada, setMarcaSeleccionada] = useState<number | null>(null);
-  const [nombreMarca, setNombreMarca] = useState<string>("");
 
   // Filtros
   const [desde, setDesde] = useState(getSixMonthsAgo());
@@ -265,6 +276,8 @@ export default function VentasTotalesPage() {
     .join("")
     .toUpperCase();
 
+  const nombreMarca = marcas.find((m) => m.idMarca === marcaSeleccionada)?.nombre ?? "";
+
   const promedio =
     serie.length > 0
       ? serie.reduce((acc, p) => acc + p.ingresosTotal, 0) / serie.length
@@ -292,34 +305,6 @@ export default function VentasTotalesPage() {
       <main className="home-main pd-main">
         <header className="home-header">
           <div className="pd-header-left">
-            {(marcaSeleccionada || retailerSeleccionado) && user?.rol !== "admin_marca" && (
-
-              <button
-                className="pd-back-btn"
-                onClick={() => {
-                  if (marcaSeleccionada) {
-                    setMarcaSeleccionada(null);
-                    setNombreMarca("");
-                    setMetricas(null);
-                    setSerie([]);
-                  } else {
-                    setRetailerSeleccionado(null);
-                  }
-                }}
-
-                aria-label="Volver"
-              >
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                  <path
-                    d="M10 12L6 8L10 4"
-                    stroke="currentColor"
-                    strokeWidth="1.75"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              </button>
-            )}
             <div>
               <p className="pd-header-sup">Tableros</p>
               <div style={{ display: "flex", alignItems: "baseline", gap: "10px" }}>
@@ -333,6 +318,9 @@ export default function VentasTotalesPage() {
                   </p>
                 )}
               </div>
+              <p style={{ fontSize: "0.8rem", color: "#9ca3af", margin: "2px 0 0 0" }}>
+                Ventas totales por marca
+              </p>
             </div>
           </div>
 
@@ -363,53 +351,54 @@ export default function VentasTotalesPage() {
 
         <div className="home-content pd-content">
 
-          {/* Selector de retailer — solo admin global */}
-          {user?.rol === "admin_global_andesml" && !retailerSeleccionado && (
-            <div className="pl-retailer-selector">
-              <p className="pl-retailer-selector-title">Selecciona un retailer</p>
-              <div className="pl-retailer-grid">
-                {retailers.map((r) => (
-                  <button
-                    key={r.idRetailer}
-                    className="pl-retailer-btn"
-                    onClick={() => setRetailerSeleccionado(r.idRetailer)}
-                  >
-                    {r.nombre}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
+          {/* Barra de selección y filtros — siempre visible */}
+          <section className="pd-filters-bar">
 
-          {(user?.rol === "admin_global_andesml" || user?.rol === "admin_retailer") &&
-            idRetailerActivo &&
-            !marcaSeleccionada && (
-              <div className="pl-retailer-selector">
-                <p className="pl-retailer-selector-title">Selecciona una marca</p>
-                <div className="pl-retailer-grid">
-                  {marcas.map((m) => (
-                    <button
-                      key={m.idMarca}
-                      className="pl-retailer-btn"
-                      onClick={() => {
-                        setMarcaSeleccionada(m.idMarca);
-                        setNombreMarca(m.nombre);
-                      }}
-                    >
-                      {m.nombre}
-                    </button>
+            {/* Selector de retailer — solo admin global */}
+            {user?.rol === "admin_global_andesml" && (
+              <div className="pd-filter-group">
+                <label className="pd-filter-label">Retailer</label>
+                <select
+                  className="pd-filter-input"
+                  value={retailerSeleccionado ?? ""}
+                  onChange={(e) => {
+                    setRetailerSeleccionado(e.target.value ? Number(e.target.value) : null);
+                    setMarcaSeleccionada(null);
+                  }}
+                >
+                  <option value="">Selecciona un retailer</option>
+                  {retailers.map((r) => (
+                    <option key={r.idRetailer} value={r.idRetailer}>{r.nombre}</option>
                   ))}
-                </div>
+                </select>
               </div>
             )}
 
-          {/* Contenido principal — solo cuando hay marca seleccionada */}
-          {marcaSeleccionada && (
-            <>
-              
+            {/* Selector de marca — admin global y admin retailer */}
+            {(user?.rol === "admin_global_andesml" || user?.rol === "admin_retailer") && (
+              <div className="pd-filter-group">
+                <label className="pd-filter-label">Marca</label>
+                <select
+                  className="pd-filter-input"
+                  value={marcaSeleccionada ?? ""}
+                  disabled={user?.rol === "admin_global_andesml" && !retailerSeleccionado}
+                  onChange={(e) => {
+                    setMarcaSeleccionada(e.target.value ? Number(e.target.value) : null);
+                    setMetricas(null);
+                    setSerie([]);
+                  }}
+                >
+                  <option value="">Selecciona una marca</option>
+                  {marcas.map((m) => (
+                    <option key={m.idMarca} value={m.idMarca}>{m.nombre}</option>
+                  ))}
+                </select>
+              </div>
+            )}
 
-              {/* Filtros */}
-              <section className="pd-filters-bar">
+            {/* Filtros de fecha — solo cuando hay marca seleccionada */}
+            {marcaSeleccionada && (
+              <>
                 <div className="pd-filter-group">
                   <label className="pd-filter-label">Desde</label>
                   <input
@@ -451,8 +440,24 @@ export default function VentasTotalesPage() {
                 >
                   {loading ? "Cargando…" : "Aplicar"}
                 </button>
-              </section>
+              </>
+            )}
+          </section>
 
+          {/* Estado vacío — cuando no hay marca seleccionada */}
+          {!marcaSeleccionada && user?.rol !== "admin_marca" && (
+            <div className="pd-empty" style={{ marginTop: "3rem" }}>
+              <p className="pd-empty-text">
+                {user?.rol === "admin_global_andesml" && !retailerSeleccionado
+                  ? "Selecciona un retailer y una marca para ver las ventas totales."
+                  : "Selecciona una marca para ver sus ventas totales."}
+              </p>
+            </div>
+          )}
+
+          {/* Contenido principal — solo cuando hay marca seleccionada */}
+          {marcaSeleccionada && (
+            <>
               {error && <div className="pd-error-banner">{error}</div>}
 
               {/* KPIs */}
