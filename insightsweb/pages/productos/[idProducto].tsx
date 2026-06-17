@@ -30,6 +30,10 @@ interface MetricasPeriodo {
   unidadesVendidas: number;
 }
 
+interface PalabrasClaveResponse {
+  palabrasClave: string[];
+}
+
 type AgruparPor = "dia" | "semana" | "mes" | "año";
 type MetricaActiva = "ingresosTotal" | "unidadesVendidas";
 type TipoGrafico = "line" | "bar";
@@ -240,6 +244,13 @@ export default function ProductoDashboard() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Palabras clave (keywords)
+  const [keywordsInput, setKeywordsInput] = useState("");
+  const [keywordsLoading, setKeywordsLoading] = useState(false);
+  const [keywordsSaving, setKeywordsSaving] = useState(false);
+  const [keywordsError, setKeywordsError] = useState<string | null>(null);
+  const [keywordsSaved, setKeywordsSaved] = useState(false);
+
   // Para que se use siempre todo el ancho posible en el gráfico
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const [chartContainerWidth, setChartContainerWidth] = useState(600);
@@ -302,6 +313,51 @@ export default function ProductoDashboard() {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  // Carga de palabras clave del producto (independiente de los filtros de fecha)
+  useEffect(() => {
+    if (!idMarca || !idProducto) return;
+    setKeywordsLoading(true);
+    setKeywordsError(null);
+
+    apiFetch(`/db/marcas/${idMarca}/productos/${idProducto}/palabras-clave`)
+      .then((r) => {
+        if (!r.ok) throw new Error("Error al cargar las palabras clave.");
+        return r.json();
+      })
+      .then((data: PalabrasClaveResponse) => {
+        setKeywordsInput((data.palabrasClave ?? []).join(", "));
+      })
+      .catch((e) => setKeywordsError((e as Error).message ?? "Error desconocido."))
+      .finally(() => setKeywordsLoading(false));
+  }, [idMarca, idProducto]);
+
+  const handleGuardarKeywords = async () => {
+    if (!idMarca || !idProducto) return;
+    setKeywordsSaving(true);
+    setKeywordsError(null);
+    setKeywordsSaved(false);
+
+    const palabrasClave = keywordsInput
+      .split(",")
+      .map((k) => k.trim())
+      .filter((k) => k.length > 0);
+
+    try {
+      const res = await apiFetch(`/db/marcas/${idMarca}/productos/${idProducto}/palabras-clave`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ palabrasClave }),
+      });
+      if (!res.ok) throw new Error("Error al guardar las palabras clave.");
+      setKeywordsInput(palabrasClave.join(", "));
+      setKeywordsSaved(true);
+    } catch (e) {
+      setKeywordsError((e as Error).message ?? "Error desconocido.");
+    } finally {
+      setKeywordsSaving(false);
+    }
+  };
 
   // Derived
   const initials = userName
@@ -662,7 +718,43 @@ export default function ProductoDashboard() {
               </div>
             </section>
           )}
+        {/* Palabras clave */}
+          <section className="pd-card">
+            <div className="pd-card-header">
+              <h2 className="pd-card-title">Palabras clave</h2>
+            </div>
 
+            {keywordsError && <div className="pd-error-banner">{keywordsError}</div>}
+
+            {keywordsLoading ? (
+              <div className="pd-skeleton" style={{ height: 80 }} />
+            ) : (
+              <>
+                <textarea
+                  className="pd-filter-input"
+                  style={{ width: "100%", minHeight: 80, resize: "vertical" }}
+                  placeholder="Palabras clave separadas por comas, ej: zapatillas, running, deportivo"
+                  value={keywordsInput}
+                  onChange={(e) => {
+                    setKeywordsInput(e.target.value);
+                    setKeywordsSaved(false);
+                  }}
+                />
+                <div style={{ display: "flex", alignItems: "center", gap: "12px", marginTop: "12px" }}>
+                  <button
+                    className="pd-apply-btn"
+                    onClick={handleGuardarKeywords}
+                    disabled={keywordsSaving}
+                  >
+                    {keywordsSaving ? "Guardando…" : "Guardar"}
+                  </button>
+                  {keywordsSaved && (
+                    <span style={{ fontSize: "0.8rem", color: "#16a34a" }}>Guardado ✓</span>
+                  )}
+                </div>
+              </>
+            )}
+          </section>
         </div>
       </main>
 
