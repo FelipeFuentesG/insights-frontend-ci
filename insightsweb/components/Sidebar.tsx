@@ -48,7 +48,6 @@ const NAV_ITEMS: NavItem[] = [
       { label: "Gaps de Rentabilidad", href: "/rendimiento/gaps-rentabilidad" },
     ],
   },
-  { label: "Gestión de la Plataforma", imgSrc: "/campaign.svg", roles: ["admin_global_andesml"] },
   { label: "Estado de Carga de Datos", href: "/estado-carga" },
 ];
 
