@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from "recharts";
@@ -84,6 +84,12 @@ export default function PerfilTab({ user }: { user: StoredUser | null }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const chartTicketRef = useRef<HTMLDivElement>(null);
+  const [chartTicketWidth, setChartTicketWidth] = useState(600);
+
+  const chartFrecuenciaRef = useRef<HTMLDivElement>(null);
+  const [chartFrecuenciaWidth, setChartFrecuenciaWidth] = useState(600);
+
   const rol = user?.rol;
 
   useEffect(() => {
@@ -123,6 +129,26 @@ export default function PerfilTab({ user }: { user: StoredUser | null }) {
     rol === "admin_marca" ? String(user?.idMarca ?? "") :
     selectedMarca ? selectedMarca :
     null;
+
+  useEffect(() => {
+    if (!chartTicketRef.current) return;
+    setChartTicketWidth(chartTicketRef.current.offsetWidth);
+    const observer = new ResizeObserver((entries) => {
+      setChartTicketWidth(entries[0].contentRect.width);
+    });
+    observer.observe(chartTicketRef.current);
+    return () => observer.disconnect();
+  }, [serie]);
+
+  useEffect(() => {
+    if (!chartFrecuenciaRef.current) return;
+    setChartFrecuenciaWidth(chartFrecuenciaRef.current.offsetWidth);
+    const observer = new ResizeObserver((entries) => {
+      setChartFrecuenciaWidth(entries[0].contentRect.width);
+    });
+    observer.observe(chartFrecuenciaRef.current);
+    return () => observer.disconnect();
+  }, [serie]);
 
   const fetchDatos = useCallback(async () => {
     if (!effectiveIdRetailer && !effectiveIdMarca) return;
@@ -246,19 +272,26 @@ export default function PerfilTab({ user }: { user: StoredUser | null }) {
           <div className="ind-card-header">
             <h2 className="ind-card-title">Evolución del ticket promedio</h2>
           </div>
-          <div className="ind-chart-area">
-            <ResponsiveContainer width="100%" height={260}>
-              <LineChart data={serie} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                <XAxis dataKey="periodo" tick={{ fontSize: 12, fill: "#6b7280" }} axisLine={false} tickLine={false} />
-                <YAxis tickFormatter={formatCLPCompact} tick={{ fontSize: 11, fill: "#6b7280" }} axisLine={false} tickLine={false} width={72} />
-                <Tooltip
-                  formatter={(val) => [formatCLP(Number(val ?? 0)), "Ticket promedio"]}
-                  contentStyle={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: "8px", fontSize: "13px", boxShadow: "0 4px 12px rgba(0,0,0,0.08)" }}
-                />
-                <Line type="monotone" dataKey="ticketPromedio" stroke="#10b981" strokeWidth={2.5} dot={{ r: 4, fill: "#10b981", strokeWidth: 0 }} activeDot={{ r: 6, fill: "#059669" }} />
-              </LineChart>
-            </ResponsiveContainer>
+          <div className="ind-chart-area" ref={chartTicketRef}>
+            <div style={{ overflowX: "auto", width: "100%" }}>
+              <div style={{ minWidth: Math.max(chartTicketWidth, serie.length * 80) }}>
+                <LineChart
+                  width={Math.max(chartTicketWidth, serie.length * 80)}
+                  height={260}
+                  data={serie}
+                  margin={{ top: 10, right: 40, left: 10, bottom: 0 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                  <XAxis dataKey="periodo" tick={{ fontSize: 12, fill: "#6b7280" }} axisLine={false} tickLine={false} />
+                  <YAxis tickFormatter={formatCLPCompact} tick={{ fontSize: 11, fill: "#6b7280" }} axisLine={false} tickLine={false} width={72} />
+                  <Tooltip
+                    formatter={(val) => [formatCLP(Number(val ?? 0)), "Ticket promedio"]}
+                    contentStyle={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: "8px", fontSize: "13px", boxShadow: "0 4px 12px rgba(0,0,0,0.08)" }}
+                  />
+                  <Line type="monotone" dataKey="ticketPromedio" stroke="#10b981" strokeWidth={2.5} dot={{ r: 4, fill: "#10b981", strokeWidth: 0 }} activeDot={{ r: 6, fill: "#059669" }} />
+                </LineChart>
+              </div>
+            </div>
           </div>
         </section>
       )}
@@ -268,19 +301,26 @@ export default function PerfilTab({ user }: { user: StoredUser | null }) {
           <div className="ind-card-header">
             <h2 className="ind-card-title">Evolución de la frecuencia de compra</h2>
           </div>
-          <div className="ind-chart-area">
-            <ResponsiveContainer width="100%" height={260}>
-              <LineChart data={serie} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                <XAxis dataKey="periodo" tick={{ fontSize: 12, fill: "#6b7280" }} axisLine={false} tickLine={false} />
-                <YAxis tickFormatter={formatFrecuencia} tick={{ fontSize: 11, fill: "#6b7280" }} axisLine={false} tickLine={false} width={56} />
-                <Tooltip
-                  formatter={(val) => [formatFrecuencia(Number(val ?? 0)), "Compras por cliente"]}
-                  contentStyle={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: "8px", fontSize: "13px", boxShadow: "0 4px 12px rgba(0,0,0,0.08)" }}
-                />
-                <Line type="monotone" dataKey="frecuenciaPromedio" stroke="#4f46e5" strokeWidth={2.5} dot={{ r: 4, fill: "#4f46e5", strokeWidth: 0 }} activeDot={{ r: 6, fill: "#4338ca" }} />
-              </LineChart>
-            </ResponsiveContainer>
+          <div className="ind-chart-area" ref={chartFrecuenciaRef}>
+            <div style={{ overflowX: "auto", width: "100%" }}>
+              <div style={{ minWidth: Math.max(chartFrecuenciaWidth, serie.length * 80) }}>
+                <LineChart
+                  width={Math.max(chartFrecuenciaWidth, serie.length * 80)}
+                  height={260}
+                  data={serie}
+                  margin={{ top: 10, right: 40, left: 10, bottom: 0 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                  <XAxis dataKey="periodo" tick={{ fontSize: 12, fill: "#6b7280" }} axisLine={false} tickLine={false} />
+                  <YAxis tickFormatter={formatFrecuencia} tick={{ fontSize: 11, fill: "#6b7280" }} axisLine={false} tickLine={false} width={56} />
+                  <Tooltip
+                    formatter={(val) => [formatFrecuencia(Number(val ?? 0)), "Compras por cliente"]}
+                    contentStyle={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: "8px", fontSize: "13px", boxShadow: "0 4px 12px rgba(0,0,0,0.08)" }}
+                  />
+                  <Line type="monotone" dataKey="frecuenciaPromedio" stroke="#4f46e5" strokeWidth={2.5} dot={{ r: 4, fill: "#4f46e5", strokeWidth: 0 }} activeDot={{ r: 6, fill: "#4338ca" }} />
+                </LineChart>
+              </div>
+            </div>
           </div>
         </section>
       )}
