@@ -345,17 +345,35 @@ export default function ProductosPage() {
                 onClick={() => setCurrentPage(p => p - 1)}
                 disabled={currentPage === 0}
               >
-                ← Anterior
+                ←
               </button>
-              <span className="pl-pagination-info">
-                Página {currentPage + 1} de {totalPages}
-              </span>
+
+              {Array.from({ length: totalPages }, (_, i) => {
+                const showPage = i === 0 || i === totalPages - 1 || Math.abs(i - currentPage) <= 1;
+                const showEllipsisBefore = i === 1 && currentPage > 3;
+                const showEllipsisAfter = i === totalPages - 2 && currentPage < totalPages - 4;
+
+                if (showEllipsisBefore || showEllipsisAfter) {
+                  return <span key={i} className="pl-pagination-ellipsis">…</span>;
+                }
+                if (!showPage) return null;
+                return (
+                  <button
+                    key={i}
+                    className={`pl-pagination-num${currentPage === i ? " pl-pagination-num--active" : ""}`}
+                    onClick={() => setCurrentPage(i)}
+                  >
+                    {i + 1}
+                  </button>
+                );
+              })}
+
               <button
                 className="pl-pagination-btn"
                 onClick={() => setCurrentPage(p => p + 1)}
                 disabled={currentPage >= totalPages - 1}
               >
-                Siguiente →
+                →
               </button>
             </div>
           )}
