@@ -185,7 +185,10 @@
 
 .ind-filter-input[type="date"],
 .pd-filter-input[type="date"],
-.rend-filter-input[type="date"] {
+.rend-filter-input[type="date"],
+.ind-filter-input[type="time"],
+.pd-filter-input[type="time"],
+.rend-filter-input[type="time"] {
   -webkit-appearance: none;
   appearance: none;
   min-height: 34px;
