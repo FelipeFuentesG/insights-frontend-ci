@@ -254,3 +254,58 @@ export async function fetchComportamientoCompraSerie(
   if (!res.ok) throw new Error("Error al cargar la serie de comportamiento de compra.");
   return res.json();
 }
+
+export interface EstadoCarga {
+  fechaHoraCarga: string | null;
+  estado: string | null;
+}
+
+export interface EstadoCargaResumen {
+  ultimaCargaExitosa: string | null;
+  ultimaEjecucion: EstadoCarga | null;
+  historial: EstadoCarga[];
+}
+
+export async function fetchEstadoCarga(): Promise<EstadoCargaResumen> {
+  const res = await apiFetch("/db/estado-carga");
+  if (!res.ok) throw new Error("Error al cargar el estado de carga de datos.");
+  return res.json();
+}
+
+export interface EtlSchedulerEstado {
+  estado: string | null;
+  schedule: string | null;
+  timeZone: string | null;
+}
+
+async function errorDeRespuesta(res: Response, fallback: string): Promise<Error> {
+  const body = await res.text().catch(() => "");
+  return new Error(body ? `${fallback} (${body})` : fallback);
+}
+
+export async function fetchEtlScheduler(): Promise<EtlSchedulerEstado> {
+  const res = await apiFetch("/db/admin/etl/scheduler");
+  if (!res.ok) throw await errorDeRespuesta(res, "Error al cargar la configuración del ETL.");
+  return res.json();
+}
+
+export async function pauseEtlScheduler(): Promise<EtlSchedulerEstado> {
+  const res = await apiFetch("/db/admin/etl/scheduler/pause", { method: "POST" });
+  if (!res.ok) throw await errorDeRespuesta(res, "Error al pausar la carga automática.");
+  return res.json();
+}
+
+export async function resumeEtlScheduler(): Promise<EtlSchedulerEstado> {
+  const res = await apiFetch("/db/admin/etl/scheduler/resume", { method: "POST" });
+  if (!res.ok) throw await errorDeRespuesta(res, "Error al reanudar la carga automática.");
+  return res.json();
+}
+
+export async function updateEtlScheduler(schedule: string): Promise<EtlSchedulerEstado> {
+  const res = await apiFetch("/db/admin/etl/scheduler/schedule", {
+    method: "POST",
+    body: JSON.stringify({ schedule }),
+  });
+  if (!res.ok) throw await errorDeRespuesta(res, "Error al actualizar la programación.");
+  return res.json();
+}
