@@ -44,6 +44,31 @@ function getEndpoint(user: User, retailerSeleccionado: number | null): string {
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
+function ImagenProducto({ urlImagen, nombre }: { urlImagen: string | null; nombre: string }) {
+  const [error, setError] = useState(false);
+
+  if (urlImagen && !error) {
+    return (
+      <img
+        src={urlImagen}
+        alt={nombre}
+        className="pl-card-img"
+        onError={() => setError(true)}
+      />
+    );
+  }
+
+  return (
+    <div className="pl-card-img-placeholder">
+      <img
+        src="https://www.pngitem.com/pimgs/m/27-272007_transparent-product-icon-png-product-vector-icon-png.png"
+        alt="Producto sin imagen"
+        className="pl-card-img-default"
+      />
+    </div>
+  );
+}
+
 function ProductoCard({
   producto,
   onClick,
@@ -54,21 +79,7 @@ function ProductoCard({
   return (
     <button className="pl-card" onClick={onClick}>
       <div className="pl-card-img-wrapper">
-        {producto.urlImagen ? (
-          <img
-            src={producto.urlImagen}
-            alt={producto.nombre}
-            className="pl-card-img"
-          />
-        ) : (
-          <div className="pl-card-img-placeholder">
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
-              <rect x="3" y="3" width="18" height="18" rx="3" stroke="#d1d5db" strokeWidth="1.5" />
-              <circle cx="8.5" cy="8.5" r="1.5" stroke="#d1d5db" strokeWidth="1.5" />
-              <path d="M3 15l5-4 4 3 3-2.5 6 5" stroke="#d1d5db" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </div>
-        )}
+        <ImagenProducto urlImagen={producto.urlImagen} nombre={producto.nombre} />
       </div>
       <div className="pl-card-body">
         <p className="pl-card-name">{producto.nombre}</p>
@@ -108,6 +119,9 @@ export default function ProductosPage() {
   const [busqueda, setBusqueda] = useState("");
   const [retailers, setRetailers] = useState<RetailerResumen[]>([]);
   const [retailerSeleccionado, setRetailerSeleccionado] = useState<number | null>(null);
+  const [currentPage, setCurrentPage] = useState(0);
+
+  const PAGE_SIZE = 15;
 
   // ── Auth guard ────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -119,6 +133,13 @@ export default function ProductosPage() {
     const parsed: User = JSON.parse(stored);
     setUser(parsed);
   }, [router]);
+
+  // ── Restaurar retailer desde URL al volver atrás ──────────────────────────
+  useEffect(() => {
+    if (!router.isReady) return;
+    const r = router.query.retailer;
+    if (r && typeof r === "string") setRetailerSeleccionado(Number(r));
+  }, [router.isReady, router.query.retailer]);
 
   // ── Fetch retailers ───────────────────────────────────────────────────────
   useEffect(() => {
@@ -168,6 +189,9 @@ export default function ProductosPage() {
     p.nombre.toLowerCase().includes(busqueda.toLowerCase())
   );
 
+  const totalPages = Math.ceil(productosFiltrados.length / PAGE_SIZE);
+  const productosPagina = productosFiltrados.slice(currentPage * PAGE_SIZE, (currentPage + 1) * PAGE_SIZE);
+
   // ── Derived ───────────────────────────────────────────────────────────────
   const initials = (user?.nombre ?? "U")
     .split(" ")
@@ -190,9 +214,29 @@ export default function ProductosPage() {
       <main className="home-main">
         {/* Header — idéntico al patrón de home.tsx */}
         <header className="home-header">
-          <div>
-            <p className="pl-header-sup">Tableros</p>
-            <p className="home-greeting">Dashboard de Productos</p>
+          <div className="pd-header-left">
+            {retailerSeleccionado !== null && user?.rol === "admin_global_andesml" && (
+              <button
+                className="pd-back-btn"
+                onClick={() => { setRetailerSeleccionado(null); setProductos([]); router.push("/productos", undefined, { shallow: true }); }}
+                aria-label="Volver"
+              >
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                  <path d="M10 12L6 8L10 4" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </button>
+            )}
+            <div>
+              <p className="pl-header-sup">Tableros</p>
+              <div style={{ display: "flex", alignItems: "baseline", gap: "10px" }}>
+                <p className="home-greeting" style={{ margin: 0 }}>Dashboard de Productos</p>
+                {retailerSeleccionado !== null && (
+                  <p style={{ fontSize: "0.75rem", color: "#9ca3af", margin: 0 }}>
+                    · ID Retailer #{retailerSeleccionado}
+                  </p>
+                )}
+              </div>
+            </div>
           </div>
           <div className="home-avatar-wrapper">
             <button
@@ -230,19 +274,21 @@ export default function ProductosPage() {
                 <p className="pl-subtitle">{subtitulo[user.rol]}</p>
               )}
             </div>
-            <div className="pl-search-wrapper">
-              <svg className="pl-search-icon" width="16" height="16" viewBox="0 0 16 16" fill="none">
-                <circle cx="7" cy="7" r="4.5" stroke="#9ca3af" strokeWidth="1.5" />
-                <path d="M10.5 10.5L13 13" stroke="#9ca3af" strokeWidth="1.5" strokeLinecap="round" />
-              </svg>
-              <input
-                type="text"
-                placeholder="Buscar producto…"
-                className="pl-search-input"
-                value={busqueda}
-                onChange={(e) => setBusqueda(e.target.value)}
-              />
-            </div>
+            {(user?.rol !== "admin_global_andesml" || retailerSeleccionado !== null) && (
+              <div className="pl-search-wrapper">
+                <svg className="pl-search-icon" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                  <circle cx="7" cy="7" r="4.5" stroke="#9ca3af" strokeWidth="1.5" />
+                  <path d="M10.5 10.5L13 13" stroke="#9ca3af" strokeWidth="1.5" strokeLinecap="round" />
+                </svg>
+                <input
+                  type="text"
+                  placeholder="Buscar producto…"
+                  className="pl-search-input"
+                  value={busqueda}
+                  onChange={(e) => { setBusqueda(e.target.value); setCurrentPage(0); }}
+                />
+              </div>
+            )}
           </div>
 
           {/* Selector de retailer para admin global */}
@@ -254,7 +300,7 @@ export default function ProductosPage() {
                   <button
                     key={r.idRetailer}
                     className="pl-retailer-btn"
-                    onClick={() => setRetailerSeleccionado(r.idRetailer)}
+                    onClick={() => { setRetailerSeleccionado(r.idRetailer); setCurrentPage(0); router.push(`/productos?retailer=${r.idRetailer}`, undefined, { shallow: true }); }}
                   >
                     {r.nombre}
                   </button>
@@ -281,7 +327,7 @@ export default function ProductosPage() {
                 </p>
               </div>
             ) : (
-              productosFiltrados.map((p) => (
+              productosPagina.map((p) => (
                 <ProductoCard
                   key={p.idProducto}
                   producto={p}
@@ -290,6 +336,47 @@ export default function ProductosPage() {
               ))
             )}
           </div>
+
+          {/* Paginación */}
+          {!loading && totalPages > 1 && (
+            <div className="pl-pagination">
+              <button
+                className="pl-pagination-btn"
+                onClick={() => setCurrentPage(p => p - 1)}
+                disabled={currentPage === 0}
+              >
+                ←
+              </button>
+
+              {Array.from({ length: totalPages }, (_, i) => {
+                const showPage = i === 0 || i === totalPages - 1 || Math.abs(i - currentPage) <= 1;
+                const showEllipsisBefore = i === 1 && currentPage > 3;
+                const showEllipsisAfter = i === totalPages - 2 && currentPage < totalPages - 4;
+
+                if (showEllipsisBefore || showEllipsisAfter) {
+                  return <span key={i} className="pl-pagination-ellipsis">…</span>;
+                }
+                if (!showPage) return null;
+                return (
+                  <button
+                    key={i}
+                    className={`pl-pagination-num${currentPage === i ? " pl-pagination-num--active" : ""}`}
+                    onClick={() => setCurrentPage(i)}
+                  >
+                    {i + 1}
+                  </button>
+                );
+              })}
+
+              <button
+                className="pl-pagination-btn"
+                onClick={() => setCurrentPage(p => p + 1)}
+                disabled={currentPage >= totalPages - 1}
+              >
+                →
+              </button>
+            </div>
+          )}
 
         </div>
       </main>

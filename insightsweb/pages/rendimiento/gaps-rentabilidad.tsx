@@ -9,6 +9,7 @@ interface ProductoGapRentabilidad {
   precioUnitario: number;
   costoUnitario: number;
   margenPct: number;
+  unidadesVendidas: number;
 }
 
 type Rol = "admin_global_andesml" | "admin_retailer" | "admin_marca";
@@ -68,6 +69,8 @@ export default function GapsRentabilidadPage() {
   const [productos, setProductos] = useState<ProductoGapRentabilidad[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(0);
+  const PAGE_SIZE = 20;
 
   useEffect(() => {
     const stored = localStorage.getItem("user");
@@ -103,6 +106,7 @@ export default function GapsRentabilidadPage() {
     setLoading(true);
     setError(null);
     setProductos(null);
+    setCurrentPage(0);
 
     try {
       const res = await apiFetch(endpoint);
@@ -124,6 +128,9 @@ export default function GapsRentabilidadPage() {
     loading ||
     isNaN(umbralNum) ||
     (user?.rol === "admin_global_andesml" && !retailerSeleccionado);
+
+  const totalPages = productos ? Math.ceil(productos.length / PAGE_SIZE) : 0;
+  const productosPagina = productos ? productos.slice(currentPage * PAGE_SIZE, (currentPage + 1) * PAGE_SIZE) : [];
 
   return (
     <div className="home-layout">
@@ -219,6 +226,7 @@ export default function GapsRentabilidadPage() {
                       <th className="rend-th">Producto</th>
                       <th className="rend-th rend-th--right">Precio venta</th>
                       <th className="rend-th rend-th--right">Costo</th>
+                      <th className="rend-th rend-th--right">Unidades vendidas</th>
                       <th className="rend-th rend-th--right">Margen</th>
                     </tr>
                   </thead>
@@ -233,6 +241,9 @@ export default function GapsRentabilidadPage() {
                         </td>
                         <td className="rend-td rend-td--right">
                           <div className="rend-skeleton-line rend-skeleton-right" />
+                        </td>
+                        <td className="rend-td rend-td--right">
+                          <div className="rend-skeleton-line rend-skeleton-right" style={{ width: 60 }} />
                         </td>
                         <td className="rend-td rend-td--right">
                           <div className="rend-skeleton-line rend-skeleton-right" style={{ width: 50 }} />
@@ -263,39 +274,70 @@ export default function GapsRentabilidadPage() {
                   </p>
                 </div>
               ) : (
-                <div className="rend-table-wrapper">
-                  <table className="rend-table">
-                    <thead>
-                      <tr>
-                        <th className="rend-th">Producto</th>
-                        <th className="rend-th rend-th--right">Precio venta</th>
-                        <th className="rend-th rend-th--right">Costo</th>
-                        <th className="rend-th rend-th--right">Margen</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {productos.map((p, i) => {
-                        const margenClass = getMargenRowClass(p.margenPct);
+                <>
+                  <div className="rend-table-wrapper">
+                    <table className="rend-table">
+                      <thead>
+                        <tr>
+                          <th className="rend-th">Producto</th>
+                          <th className="rend-th rend-th--right">Precio venta</th>
+                          <th className="rend-th rend-th--right">Costo</th>
+                          <th className="rend-th rend-th--right">Unidades vendidas</th>
+                          <th className="rend-th rend-th--right">Margen</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {productosPagina.map((p, i) => {
+                          const margenClass = getMargenRowClass(p.margenPct);
+                          const unidades = p.unidadesVendidas ?? 0;
+                          return (
+                            <tr
+                              key={p.idProducto}
+                              className={`rend-tr${i % 2 !== 0 && !margenClass ? " rend-tr--alt" : ""} ${margenClass}`}
+                            >
+                              <td className="rend-td">
+                                <span style={{ fontWeight: 500 }}>{p.nombre}</span>
+                                <span className="rend-td-id">#{p.idProducto}</span>
+                              </td>
+                              <td className="rend-td rend-td--right">{formatCLP(p.precioUnitario)}</td>
+                              <td className="rend-td rend-td--right">{formatCLP(p.costoUnitario)}</td>
+                              <td className="rend-td rend-td--right">{unidades.toLocaleString("es-CL")}</td>
+                              <td className="rend-td rend-td--right">
+                                <MargenBadge margen={p.margenPct} />
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {totalPages > 1 && (
+                    <div className="pl-pagination" style={{ paddingTop: 16 }}>
+                      <button className="pl-pagination-btn" onClick={() => setCurrentPage(p => p - 1)} disabled={currentPage === 0}>←</button>
+                      {Array.from({ length: totalPages }, (_, i) => {
+                        const showPage = i === 0 || i === totalPages - 1 || Math.abs(i - currentPage) <= 1;
+                        const showEllipsisBefore = i === 1 && currentPage > 3;
+                        const showEllipsisAfter = i === totalPages - 2 && currentPage < totalPages - 4;
+
+                        if (showEllipsisBefore || showEllipsisAfter) {
+                          return <span key={i} className="pl-pagination-ellipsis">…</span>;
+                        }
+                        if (!showPage) return null;
                         return (
-                          <tr
-                            key={p.idProducto}
-                            className={`rend-tr${i % 2 !== 0 && !margenClass ? " rend-tr--alt" : ""} ${margenClass}`}
+                          <button
+                            key={i}
+                            className={`pl-pagination-num${currentPage === i ? " pl-pagination-num--active" : ""}`}
+                            onClick={() => setCurrentPage(i)}
                           >
-                            <td className="rend-td">
-                              <span style={{ fontWeight: 500 }}>{p.nombre}</span>
-                              <span className="rend-td-id">#{p.idProducto}</span>
-                            </td>
-                            <td className="rend-td rend-td--right">{formatCLP(p.precioUnitario)}</td>
-                            <td className="rend-td rend-td--right">{formatCLP(p.costoUnitario)}</td>
-                            <td className="rend-td rend-td--right">
-                              <MargenBadge margen={p.margenPct} />
-                            </td>
-                          </tr>
+                            {i + 1}
+                          </button>
                         );
                       })}
-                    </tbody>
-                  </table>
-                </div>
+                      <button className="pl-pagination-btn" onClick={() => setCurrentPage(p => p + 1)} disabled={currentPage >= totalPages - 1}>→</button>
+                    </div>
+                  )}
+                </>
               )}
 
               <div style={{ marginTop: 14, display: "flex", gap: 16, flexWrap: "wrap" }}>
