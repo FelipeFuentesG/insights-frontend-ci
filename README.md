@@ -87,6 +87,36 @@ Abre **http://localhost:3000** en tu navegador.
 
 ---
 
+## Tests E2E (Playwright)
+
+Todos los comandos de esta sección se ejecutan desde la carpeta `insightsweb/`.
+
+### Requisitos previos
+
+El backend del proyecto debe estar corriendo antes de ejecutar los tests, ya que las pruebas realizan llamadas reales a la API.
+
+### Instalación
+
+Descarga el navegador que Playwright necesita:
+
+```bash
+npx playwright install chromium
+```
+
+### Scripts disponibles
+
+Ejecuta todos los tests en modo headless (sin abrir ventana de navegador):
+
+```bash
+npm run test:e2e
+```
+
+Abre el reporte HTML generado por el último run, saldrá en la terminal el comando a ejecutar. 
+
+> **Nota sobre artefactos:** Los resultados y el reporte HTML de Playwright se guardan fuera de la carpeta del proyecto, en el directorio temporal del sistema. Esto es intencional: evita que los archivos generados durante los tests entren en conflicto con el watcher del servidor de desarrollo.
+
+---
+
 ## URLs cuando todo está corriendo
 
 | Servicio | URL |
