@@ -227,7 +227,9 @@ export default function RetailerGlobalPage() {
     metrica === "presenciaCarritos"  ? formatPct(v) :
     formatNum(v);
   const maxTop    = top10[0]?.[metrica]    as number ?? 1;
-  const maxBottom = bottom10[0]?.[metrica] as number ?? 1;
+  //const maxBottom = bottom10[0]?.[metrica] as number ?? 1; //original
+  //const maxBottom = (bottom10[bottom10.length - 1]?.[metrica] as number) ?? 1; //tomando como 100% el mejor de top10 peores
+  const maxBottom = maxTop; //tomando como 100% el mejor de top10 mejores, para mostrar la proporción real entre ambos extremos
 
   // ── Comparador personalizado ─────────────────────────────────────────────
   const seleccionadas = comparativo.filter((m) => marcasSeleccionadas.includes(m.idMarca));

@@ -65,6 +65,8 @@ export default function RendimientoPage() {
   const [productos, setProductos] = useState<ProductoRendimiento[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(0);
+  const PAGE_SIZE = 20;
 
   useEffect(() => {
     const stored = localStorage.getItem("user");
@@ -100,6 +102,7 @@ export default function RendimientoPage() {
     setLoading(true);
     setError(null);
     setProductos(null);
+    setCurrentPage(0);
 
     try {
       const res = await apiFetch(endpoint);
@@ -121,6 +124,9 @@ export default function RendimientoPage() {
     loading ||
     isNaN(umbralNum) ||
     (user?.rol === "admin_global_andesml" && !retailerSeleccionado);
+
+  const totalPages = productos ? Math.ceil(productos.length / PAGE_SIZE) : 0;
+  const productosPagina = productos ? productos.slice(currentPage * PAGE_SIZE, (currentPage + 1) * PAGE_SIZE) : [];
 
   return (
     <div className="home-layout">
@@ -260,36 +266,64 @@ export default function RendimientoPage() {
                   </p>
                 </div>
               ) : (
-                <div className="rend-table-wrapper">
-                  <table className="rend-table">
-                    <thead>
-                      <tr>
-                        <th className="rend-th">Producto</th>
-                        <th className="rend-th rend-th--right">Visitas</th>
-                        <th className="rend-th rend-th--right">Conversiones</th>
-                        <th className="rend-th rend-th--right">Tasa de conversión</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {productos.map((p, i) => (
-                        <tr
-                          key={p.idProducto}
-                          className={`rend-tr${i % 2 !== 0 ? " rend-tr--alt" : ""}`}
-                        >
-                          <td className="rend-td">
-                            <span style={{ fontWeight: 500 }}>{p.nombre}</span>
-                            <span className="rend-td-id">#{p.idProducto}</span>
-                          </td>
-                          <td className="rend-td rend-td--right">{formatNum(p.visitas)}</td>
-                          <td className="rend-td rend-td--right">{formatNum(p.conversiones)}</td>
-                          <td className="rend-td rend-td--right">
-                            <TasaBadge tasa={p.tasaConversion} />
-                          </td>
+                <>
+                  <div className="rend-table-wrapper">
+                    <table className="rend-table">
+                      <thead>
+                        <tr>
+                          <th className="rend-th">Producto</th>
+                          <th className="rend-th rend-th--right">Visitas</th>
+                          <th className="rend-th rend-th--right">Conversiones</th>
+                          <th className="rend-th rend-th--right">Tasa de conversión</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                      </thead>
+                      <tbody>
+                        {productosPagina.map((p, i) => (
+                          <tr
+                            key={p.idProducto}
+                            className={`rend-tr${i % 2 !== 0 ? " rend-tr--alt" : ""}`}
+                          >
+                            <td className="rend-td">
+                              <span style={{ fontWeight: 500 }}>{p.nombre}</span>
+                              <span className="rend-td-id">#{p.idProducto}</span>
+                            </td>
+                            <td className="rend-td rend-td--right">{formatNum(p.visitas)}</td>
+                            <td className="rend-td rend-td--right">{formatNum(p.conversiones)}</td>
+                            <td className="rend-td rend-td--right">
+                              <TasaBadge tasa={p.tasaConversion} />
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {totalPages > 1 && (
+                    <div className="pl-pagination" style={{ paddingTop: 16 }}>
+                      <button className="pl-pagination-btn" onClick={() => setCurrentPage(p => p - 1)} disabled={currentPage === 0}>←</button>
+                      {Array.from({ length: totalPages }, (_, i) => {
+                        const showPage = i === 0 || i === totalPages - 1 || Math.abs(i - currentPage) <= 1;
+                        const showEllipsisBefore = i === 1 && currentPage > 3;
+                        const showEllipsisAfter = i === totalPages - 2 && currentPage < totalPages - 4;
+
+                        if (showEllipsisBefore || showEllipsisAfter) {
+                          return <span key={i} className="pl-pagination-ellipsis">…</span>;
+                        }
+                        if (!showPage) return null;
+                        return (
+                          <button
+                            key={i}
+                            className={`pl-pagination-num${currentPage === i ? " pl-pagination-num--active" : ""}`}
+                            onClick={() => setCurrentPage(i)}
+                          >
+                            {i + 1}
+                          </button>
+                        );
+                      })}
+                      <button className="pl-pagination-btn" onClick={() => setCurrentPage(p => p + 1)} disabled={currentPage >= totalPages - 1}>→</button>
+                    </div>
+                  )}
+                </>
               )}
             </section>
           )}

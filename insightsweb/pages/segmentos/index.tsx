@@ -1062,9 +1062,8 @@ export default function SegmentosPage() {
                     </section>
                   )}
 
-                  {/* Acciones de mantenimiento (solo admin global y retailer) */}
-                  {(user?.rol === "admin_global_andesml" ||
-                    user?.rol === "admin_retailer") && (
+                  {/* Acciones de mantenimiento (los 3 roles; admin_marca solo su marca) */}
+                  {user && (
                     <section className="pd-card" style={{ padding: "12px 16px" }}>
                       <p
                         style={{
@@ -1191,7 +1190,13 @@ export default function SegmentosPage() {
                     />
                     <KpiCard
                       label="Segmentos definidos"
-                      value={loadingSeg || !segmentos ? "—" : formatNum(segmentos.segmentos.length)}
+                      value={
+                        loadingSeg || !segmentos
+                          ? "—"
+                          : formatNum(
+                              segmentos.segmentos.filter((s) => s.totalClientes > 0).length
+                            )
+                      }
                     />
                     <KpiCard
                       label="Clientes sin segmento"
