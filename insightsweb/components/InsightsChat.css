@@ -101,9 +101,17 @@
   font-size: 14px;
   line-height: 1.55;
   word-break: break-word;
-  white-space: pre-wrap;
   margin: 0;
 }
+
+/* Markdown content inside AI messages */
+.ai-msg--ai p { margin: 0 0 8px 0; }
+.ai-msg--ai p:last-child { margin-bottom: 0; }
+.ai-msg--ai ul,
+.ai-msg--ai ol { margin: 4px 0 8px 0; padding-left: 20px; }
+.ai-msg--ai li { margin-bottom: 4px; }
+.ai-msg--ai strong { font-weight: 600; }
+.ai-msg--ai em { font-style: italic; }
 
 .ai-msg--user {
   align-self: flex-end;

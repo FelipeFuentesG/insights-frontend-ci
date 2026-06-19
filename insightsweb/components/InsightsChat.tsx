@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import ReactMarkdown from "react-markdown";
 import { apiFetch } from "../lib/api";
 
 type Rol = "admin_marca" | "admin_retailer" | "admin_global_andesml";
@@ -107,11 +108,17 @@ export default function InsightsChat({ user, contexto = null, suggestions }: Pro
             )}
           </>
         )}
-        {messages.map((msg, i) => (
-          <p key={i} className={`ai-msg ai-msg--${msg.role}`}>
-            {msg.text}
-          </p>
-        ))}
+        {messages.map((msg, i) =>
+          msg.role === "ai" ? (
+            <div key={i} className={`ai-msg ai-msg--${msg.role}`}>
+              <ReactMarkdown>{msg.text}</ReactMarkdown>
+            </div>
+          ) : (
+            <p key={i} className={`ai-msg ai-msg--${msg.role}`}>
+              {msg.text}
+            </p>
+          )
+        )}
         {loading && (
           <p className="ai-msg ai-msg--thinking">Pensando…</p>
         )}
