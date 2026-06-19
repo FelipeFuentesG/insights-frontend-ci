@@ -114,7 +114,7 @@ npm run test:e2e
 
 Abre el reporte HTML generado por el último run, saldrá en la terminal el comando a ejecutar. 
 
-> **Nota sobre artefactos:** Los resultados y el reporte HTML de Playwright se guardan fuera de la carpeta del proyecto, en el directorio temporal del sistema. Esto es intencional: evita que los archivos generados durante los tests entren en conflicto con el watcher del servidor de desarrollo.
+> **Nota sobre artefactos:** Los resultados y el reporte HTML de Playwright se guardan fuera de la carpeta del proyecto, en el directorio temporal del sistema. Esto es intencional, evita que los archivos generados durante los tests entren en conflicto con el watcher del servidor de desarrollo.
 
 ---
 
