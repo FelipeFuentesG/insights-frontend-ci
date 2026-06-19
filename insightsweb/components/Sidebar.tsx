@@ -38,7 +38,6 @@ const NAV_ITEMS: NavItem[] = [
       },
     ],
   },
-  { label: "Insights", imgSrc: "/bulb.svg", href: "/insights" },
   {
     label: "Análisis de Catálogo",
     imgSrc: "/bag.svg",
