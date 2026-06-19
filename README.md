@@ -100,6 +100,7 @@ El backend del proyecto debe estar corriendo antes de ejecutar los tests, ya que
 Descarga el navegador que Playwright necesita:
 
 ```bash
+npm install
 npx playwright install chromium
 ```
 

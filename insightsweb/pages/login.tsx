@@ -47,8 +47,7 @@ export default function Login() {
               src="/logo_AndesML.png"
               alt="AndesML"
               height={32}
-              width={148}
-              style={{ width: "auto", height: "32px" }}
+              width={149}
               priority
             />
           </Link>

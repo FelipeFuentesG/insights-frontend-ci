@@ -12,7 +12,7 @@ export default function Navbar() {
             src="/logo_AndesML.png"
             alt="AndesML"
             height={36}
-            width={150}
+            width={167}
             priority
           />
         </Link>
