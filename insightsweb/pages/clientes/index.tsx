@@ -16,7 +16,7 @@ import {
   Legend,
 } from "recharts";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+// ─── Types ───────────────────────────────────────────────────────────────────
 
 type Rol = "admin_global_andesml" | "admin_retailer" | "admin_marca";
 
