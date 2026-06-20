@@ -1,4 +1,11 @@
-# Despliegue en Render — Frontend Web (Insights)
+# Despliegue en Render — Frontend Web
+# Insights - AndesML
+
+### Taller de Integración IIC3104-2 2026-1
+### Pontificia Universidad Católica de Chile
+### Grupo 6
+
+---
 
 > El backend debe estar desplegado y funcionando antes de configurar el frontend.
 > Sigue primero el `README_Deploy.md` de `2026-1-TI-S2-Grupo6-Backend`.

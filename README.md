@@ -1,11 +1,32 @@
-# Instalación local — Frontend Web (Insights)
+# **Frontend Web**
+# **Insights - AndesML**
+
+### Taller de Integración IIC3104-2 2026-1
+### Pontificia Universidad Católica de Chile
+### Grupo 6: 
+
+- Fares Dababneh Olguín
+
+- Lesly de la Hoz Bahamóndez
+
+- Monserrat Fernández Lillo
+
+- Felipe Fuentes González
+
+- Raimundo Lecaros Vial
+
+- Vicente Muñoz Garachena
+
+---
+
+## Instalación local — Frontend Web (Insights)
 
 > El backend debe estar corriendo antes de iniciar el frontend.
 > Sigue primero el README de `2026-1-TI-S2-Grupo6-Backend`.
 
 ---
 
-## 1. Instalar Node.js 20 y Yarn
+### 1. Instalar Node.js 20 y Yarn
 
 **macOS**
 ```bash
@@ -30,7 +51,7 @@ Verifica: `node -v` → `v20.x.x` | `npm -v` → `10.x.x`
 
 ---
 
-## 2. Clonar el repositorio
+### 2. Clonar el repositorio
 
 ```bash
 git clone <URL_DEL_REPOSITORIO>
@@ -41,7 +62,7 @@ cd 2026-1-TI-S2-Grupo6-Web/insightsweb
 
 ---
 
-## 3. Crear `.env.local`
+### 3. Crear `.env.local`
 
 Crea el archivo `insightsweb/.env.local` con el contenido que te pasan por privado.
 
@@ -49,7 +70,7 @@ El archivo debe quedar en `insightsweb/.env.local`.
 
 ---
 
-## 4. Instalar dependencias
+### 4. Instalar dependencias
 
 ```bash
 npm install
@@ -59,7 +80,7 @@ La primera vez tarda 1–3 minutos. Debe terminar sin errores.
 
 ---
 
-## 5. Ejecutar
+### 5. Ejecutar
 
 ```bash
 npm run dev
@@ -117,6 +138,38 @@ Abre el reporte HTML generado por el último run, saldrá en la terminal el coma
 > **Nota sobre artefactos:** Los resultados y el reporte HTML de Playwright se guardan fuera de la carpeta del proyecto, en el directorio temporal del sistema. Esto es intencional, evita que los archivos generados durante los tests entren en conflicto con el watcher del servidor de desarrollo.
 
 ---
+
+## Tests unitarios (Vitest)
+
+Todos los comandos se ejecutan desde la carpeta `insightsweb/`.
+
+```bash
+npm install  # solo la primera vez
+```
+
+Correr todos los tests una vez:
+
+```bash
+npm test
+```
+
+Modo watch (salir con `q`):
+
+```bash
+npx vitest
+```
+
+Un archivo puntual:
+
+```bash
+npx vitest run <ruta/al/archivo.test.ts>
+```
+
+Filtrar por nombre de test:
+
+```bash
+npx vitest run -t "<nombre del test>"
+```
 
 ## URLs cuando todo está corriendo
 
