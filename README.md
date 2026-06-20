@@ -1,6 +1,6 @@
 # **Frontend Web**
 # **Insights - AndesML**
----
+
 ### Taller de Integración IIC3104-2 2026-1
 ### Pontificia Universidad Católica de Chile
 ### Grupo 6: 
