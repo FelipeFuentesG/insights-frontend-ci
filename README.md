@@ -64,7 +64,11 @@ cd 2026-1-TI-S2-Grupo6-Web/insightsweb
 
 ### 3. Crear `.env.local`
 
-Crea el archivo `insightsweb/.env.local` con el contenido que te pasan por privado.
+Crea el archivo `insightsweb/.env.local` con el contenido que te pasan por privado. Su contenido debe ser de la forma:
+
+```dotenv
+NEXT_PUBLIC_API_URL=http://localhost:8080
+```
 
 El archivo debe quedar en `insightsweb/.env.local`.
 
@@ -198,3 +202,15 @@ Los 3 tests unitarios puros.
 |----------|-----|
 | Frontend | http://localhost:3000 |
 | Backend | http://localhost:8080 |
+
+---
+
+## Deploy
+
+Las instrucciones de despliegue en producción se encuentran en [`README_Deploy.md`](README_Deploy.md).
+
+---
+
+## Google Cloud Platform
+
+Los detalles sobre la infraestructura del proyecto en Google Cloud Platform (BigQuery, Cloud Storage, Cloud Run, cuentas de servicio) se encuentran en [`README_GCP.md`](README_GCP.md).
