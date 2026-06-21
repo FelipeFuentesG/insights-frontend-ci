@@ -28,6 +28,7 @@ interface MetricasPeriodo { periodo: string; ingresosTotal: number; totalTransac
 interface TopProducto     { idProducto: number; nombre: string; ingresosTotal: number; unidadesVendidas: number; }
 interface VentasPorCanal { canal: string; ingresosTotal: number; unidadesVendidas: number; }
 interface CarritoEventos { agregarCarro: number; quitarCarro: number; }
+interface CategoriaResumen { categoria: string; }
 
 type AgruparPor   = "dia" | "semana" | "mes" | "año";
 type MetricaCanal = "ingresosTotal" | "unidadesVendidas";
@@ -112,6 +113,9 @@ export default function IndicadoresTab({ user }: { user: StoredUser | null }) {
   const [hasta, setHasta]       = useState(getIsoToday());
   const [agruparPor, setAgruparPor] = useState<AgruparPor>("mes");
 
+  // Filtro categoría
+  const [categorias, setCategorias]                     = useState<string[]>([]);
+  const [categoriaSeleccionada, setCategoriaSeleccionada] = useState<string>("");
 
   // Data
   const [metricas, setMetricas] = useState<MainMetrics | null>(null);
@@ -166,6 +170,14 @@ export default function IndicadoresTab({ user }: { user: StoredUser | null }) {
     selectedMarca                  ? selectedMarca :
     null;
 
+  useEffect(() => {
+    if (!effectiveIdMarca) { setCategorias([]); setCategoriaSeleccionada(""); return; }
+    apiFetch(`/db/marcas/${effectiveIdMarca}/categorias-producto`)
+      .then(r => r.json())
+      .then((data: CategoriaResumen[]) => setCategorias(data.map(c => c.categoria)))
+      .catch(() => setCategorias([]));
+  }, [effectiveIdMarca]);
+
   // ── Fetch de métricas ──────────────────────────────────────────────────────
   const fetchData = useCallback(async () => {
     if (!effectiveIdRetailer && !effectiveIdMarca) return;
@@ -173,9 +185,10 @@ export default function IndicadoresTab({ user }: { user: StoredUser | null }) {
     setError(null);
 
     try {
-      const qs     = buildQS({ desde, hasta });
-      const qsSerie = buildQS({ desde, hasta, agruparPor });
-      const qsTop  = buildQS({ desde, hasta, topN: "10" });
+      const cat     = categoriaSeleccionada || undefined;
+      const qs      = buildQS({ desde, hasta, categoria: cat });
+      const qsSerie = buildQS({ desde, hasta, agruparPor, categoria: cat });
+      const qsTop   = buildQS({ desde, hasta, topN: "10", categoria: cat });
 
       let urlMetricas: string;
       let urlSerie: string;
@@ -220,7 +233,7 @@ export default function IndicadoresTab({ user }: { user: StoredUser | null }) {
     } finally {
       setLoading(false);
     }
-  }, [effectiveIdMarca, effectiveIdRetailer, desde, hasta, agruparPor]);
+  }, [effectiveIdMarca, effectiveIdRetailer, desde, hasta, agruparPor, categoriaSeleccionada]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
@@ -281,6 +294,16 @@ export default function IndicadoresTab({ user }: { user: StoredUser | null }) {
           </Select>
         )}
 
+        {/* Selector Categoría — solo cuando hay marca efectiva */}
+        {effectiveIdMarca && categorias.length > 0 && (
+          <Select label="Categoría" value={categoriaSeleccionada} onChange={setCategoriaSeleccionada}>
+            <option value="">Todas</option>
+            {categorias.map(cat => (
+              <option key={cat} value={cat}>{cat}</option>
+            ))}
+          </Select>
+        )}
+
         {/* Fechas */}
         <div className="ind-filter-group">
           <label className="ind-filter-label">Desde</label>
@@ -312,6 +335,7 @@ export default function IndicadoresTab({ user }: { user: StoredUser | null }) {
       {contextoLabel && (
         <p className="ind-context-label">
           Mostrando datos de: <strong>{contextoLabel}</strong>
+          {categoriaSeleccionada && <> — Categoría de productos: <strong>{categoriaSeleccionada}</strong></>}
         </p>
       )}
 
@@ -336,7 +360,7 @@ export default function IndicadoresTab({ user }: { user: StoredUser | null }) {
         <KpiCard
           label="Presencia en carrito"
           value={metricas ? formatPct(metricas.presenciaCarritos) : "—"}
-          sub="vs. total de eventos agregar_carro"
+          sub={categoriaSeleccionada ? "Total de la marca (sin filtro de categoría)" : "vs. total de eventos agregar_carro"}
         />
         <KpiCard
           label="Ticket promedio"
@@ -348,14 +372,16 @@ export default function IndicadoresTab({ user }: { user: StoredUser | null }) {
         <KpiCard
           label="Agregados al carrito de compras"
           value={carritoEventos ? formatNum(carritoEventos.agregarCarro) : "—"}
-          sub="Eventos agregar_carro en el período"
+          sub={categoriaSeleccionada ? "Total de la marca (sin filtro de categoría)" : "Eventos agregar_carro en el período"}
         />
         <KpiCard
           label="Quitados del carrito de compras"
           value={carritoEventos ? formatNum(carritoEventos.quitarCarro) : "—"}
-          sub={carritoEventos && carritoEventos.agregarCarro > 0
-            ? `Retención: ${(((carritoEventos.agregarCarro - carritoEventos.quitarCarro) / carritoEventos.agregarCarro) * 100).toFixed(1)}%`
-            : "Sin datos de retención"}
+          sub={categoriaSeleccionada
+            ? "Total de la marca (sin filtro de categoría)"
+            : carritoEventos && carritoEventos.agregarCarro > 0
+              ? `Eventos agregar_carro en el período, Retención: ${(((carritoEventos.agregarCarro - carritoEventos.quitarCarro) / carritoEventos.agregarCarro) * 100).toFixed(1)}%`
+              : "Sin datos de retención"}
         />
       </section>
 
