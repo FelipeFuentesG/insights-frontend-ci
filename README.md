@@ -171,6 +171,27 @@ Filtrar por nombre de test:
 npx vitest run -t "<nombre del test>"
 ```
 
+---
+
+## CI — Integración continua
+
+El repositorio tiene un workflow de GitHub Actions "CI — Tests unitarios frontend" (`ci-tests-front.yml`) que corre los tests unitarios automáticamente.
+
+> **Nota:**  el trigger automático por push a `main` está actualmente comentado (desactivado) en el archivo `ci-tests-front.yml` del workflow debido a restricciones de la organización `iictituloing` sobre GitHub Actions en repositorios privados (restricciones de presupuesto sobre el uso y minutos de ejecución de GitHub Actions que no permiten ejecutar el workflow). El workflow está implementado y puede dispararse manualmente desde la pestaña **Actions** del repositorio cuando Actions esté habilitado.
+
+**Se ejecuta:**
+- Manualmente desde la pestaña **Actions** del repositorio en GitHub → `CI — Tests unitarios frontend` → **Run workflow**
+
+**Qué corre:**
+```
+lib/__tests__/api.test.ts, lib/__tests__/cron.test.ts, lib/__tests__/format.test.ts
+```
+Los 3 tests unitarios puros.
+
+**Ver resultados:** pestaña **Actions** del repositorio → `CI — Tests unitarios frontend`.
+
+---
+
 ## URLs cuando todo está corriendo
 
 | Servicio | URL |
