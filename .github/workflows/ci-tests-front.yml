@@ -4,8 +4,8 @@ on:
   # Push a main deshabilitado por restricciones de la organización iictituloing.
   # El workflow falla por restricciones de presupuesto para el repositorio privado y uso de GitHub Actions.
   # Habilitar las siguientes dos líneas cuando GitHub Actions esté disponible para repos privados de la organización.
-  # push:
-  #   branches: [main]
+  push:
+    branches: [main]
   workflow_dispatch:
 
 jobs:
